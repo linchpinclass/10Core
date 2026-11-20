@@ -112,6 +112,9 @@ select{appearance:none;font-weight:700}
 </header>
 
 <div class="wrap">
+  <div id="inapp-warn" hidden style="background:#fff3cd;color:#664d03;border:1px solid #ffe69c;border-radius:12px;padding:11px 13px;margin-top:12px;font-size:12.5px;font-weight:600;line-height:1.55">
+    ⚠️ <b>카톡 공유(특히 사진)가 안 되나요?</b><br>지금 카톡·네이버 앱 안에서 열려 있어요. 우측 위 <b>⋮ 메뉴 → 다른 브라우저로 열기</b>(크롬·사파리)로 열면 사진·명단이 카톡으로 바로 공유돼요.
+  </div>
   <div id="loading" class="card"><div class="spin"></div>
     <div class="center" style="padding:14px 0 0">불러오는 중…</div></div>
 
@@ -249,6 +252,12 @@ var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
 var photoDataUrls=[];     // 아직 제출 전 선택한 사진들
 var sharedPhotos=[];      // 제출 완료 후 공유용으로 보관하는 사진들
+// 카톡·네이버 등 '인앱 브라우저'면 Web Share가 막혀 공유창이 안 뜸 → 안내
+function isInApp(){
+  var ua=(navigator.userAgent||'');
+  return /KAKAOTALK|NAVER\(|NAVER |DaumApps|Instagram|FBAN|FBAV|FB_IAB|Line\/|Snapchat|Band|KAKAOSTORY/i.test(ua);
+}
+function noShareSupport(){ return !(navigator.share); }
 function dataUrlToFile(u, name){
   var parts=String(u).split(','), mime=((parts[0].match(/:(.*?);/))||[])[1]||'image/jpeg';
   var bin=atob(parts[1]||''), n=bin.length, arr=new Uint8Array(n);
@@ -463,7 +472,8 @@ function sharePhotos(){
       return;
     }
   }catch(e){}
-  toast('이 기기는 사진 직접 공유 미지원 — 명단의 📷 링크로 보여요');
+  var w1=document.getElementById('inapp-warn'); if(w1) w1.hidden=false;
+  toast('사진 공유는 크롬·사파리에서 열어야 돼요 (상단 배너 참고) 📸');
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
 function shareBoth(){
@@ -484,8 +494,9 @@ function shareBoth(){
         return;
       }
     }catch(e){}
-    // ③ 파일 공유 자체 미지원(주로 PC) → 명단 텍스트(사진은 📷 링크)
-    shareOrCopy(boardText(),'명단 복사됨 — 사진은 명단의 📷 링크로 보여요');
+    // ③ 파일 공유 자체 미지원(PC·인앱브라우저) → 명단은 복사, 사진은 외부 브라우저 안내
+    var w2=document.getElementById('inapp-warn'); if(w2 && noShareSupport()) w2.hidden=false;
+    shareOrCopy(boardText(),'명단 복사됨 · 사진 공유는 크롬·사파리에서 열어주세요 📸');
     return;
   }
   // 앱 모드
@@ -535,6 +546,10 @@ function addWaiting(){
   }).catch(function(e){toast('오류 — 다시 시도');});
 }
 
+// 인앱 브라우저거나 공유 미지원이면 상단 배너 표시
+if(isInApp() || noShareSupport()){
+  var warn=document.getElementById('inapp-warn'); if(warn) warn.hidden=false;
+}
 load();
 </script>
 </body>
