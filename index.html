@@ -161,19 +161,22 @@ select{appearance:none;font-weight:700}
       </div>
       <div id="w-form"><div id="w-items"></div></div>
       <div id="w-photonote" hidden style="margin-top:4px">
-        <div class="okbox" style="margin-top:0">노션·노트·한글·종이노트 등에 쓴 텐코아를 <b>사진으로 올려서</b> 인증해요 📸</div>
-        <label class="btn ghost" style="margin-top:12px;cursor:pointer">📷 사진 선택 / 촬영
-          <input type="file" accept="image/*" id="w-photo" onchange="onPhotoPick(event)" hidden></label>
-        <img id="w-photoprev" hidden style="width:100%;border-radius:12px;margin-top:12px;border:1px solid var(--line)">
+        <div class="okbox" style="margin-top:0">노션·노트·한글·종이노트 등에 쓴 텐코아를 <b>사진으로 올려서</b> 인증해요 📸 <b>여러 장</b>도 돼요!</div>
+        <label class="btn ghost" style="margin-top:12px;cursor:pointer">📷 사진 선택 / 촬영 <em style="color:var(--sub);font-weight:600;font-size:11.5px">(여러 장 가능)</em>
+          <input type="file" accept="image/*" id="w-photo" multiple onchange="onPhotoPick(event)" hidden></label>
+        <div id="w-photoprev" hidden style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
       </div>
     </div>
 
     <button class="btn primary" id="w-submit" onclick="submit()">✅ 인증 완료</button>
     <div id="w-after" hidden>
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
-      <button class="btn primary" id="sh-my" style="margin-top:10px" onclick="shareMy()">📤 내 텐코아 공유</button>
+      <button class="btn primary" id="sh-both" style="margin-top:10px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
       <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 올린 사진은 <b>명단에서 📷</b>를 눌러 볼 수 있어요</div>
-      <button class="btn primary" style="margin-top:8px" onclick="shareBoard()">📤 명단 공유</button>
+      <div class="btnrow">
+        <button class="btn ghost sm" id="sh-my" onclick="shareMy()">📝 내 텐코아만</button>
+        <button class="btn ghost sm" onclick="shareBoard()">📋 명단만</button>
+      </div>
       <div class="hint" style="text-align:center">모바일: 공유 → 카톡 선택 · PC: 복사 후 붙여넣기</div>
     </div>
     <div class="foot">앱 작성 시 1~5번·9~10번은 되도록 채우기! (4번은 시스템 참석한 날만)</div>
@@ -244,24 +247,40 @@ var ITEMS=[
 ];
 var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
-var photoDataUrl='';
+var photoDataUrls=[];
 function onPhotoPick(ev){
-  var f=ev.target.files&&ev.target.files[0]; if(!f) return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var max=1200,w=img.width,h=img.height;
-      if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
-      var cv=document.createElement('canvas');cv.width=w;cv.height=h;
-      cv.getContext('2d').drawImage(img,0,0,w,h);
-      photoDataUrl=cv.toDataURL('image/jpeg',0.8);
-      var pv=document.getElementById('w-photoprev');pv.src=photoDataUrl;pv.hidden=false;
-      toast('사진 선택됨 — 인증 완료를 눌러주세요 📸');
+  var files=ev.target.files; if(!files||!files.length) return;
+  Array.prototype.slice.call(files).forEach(function(f){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var max=1200,w=img.width,h=img.height;
+        if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+        var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        photoDataUrls.push(cv.toDataURL('image/jpeg',0.8));
+        renderPhotoPrev();
+        toast(photoDataUrls.length+'장 선택됨 — 인증 완료를 눌러주세요 📸');
+      };
+      img.src=e.target.result;
     };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(f);
+    reader.readAsDataURL(f);
+  });
+  ev.target.value='';   // 같은 파일 다시·추가 선택 허용
+}
+function renderPhotoPrev(){
+  var box=document.getElementById('w-photoprev');box.innerHTML='';
+  photoDataUrls.forEach(function(u,i){
+    var wrap=document.createElement('div');wrap.style.cssText='position:relative';
+    var im=document.createElement('img');im.src=u;
+    im.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--line)';
+    var x=document.createElement('button');x.type='button';x.textContent='×';
+    x.style.cssText='position:absolute;top:-7px;right:-7px;width:21px;height:21px;border-radius:50%;border:0;background:var(--coral);color:#fff;font-weight:800;font-size:13px;line-height:1;cursor:pointer';
+    x.onclick=function(){ photoDataUrls.splice(i,1); renderPhotoPrev(); };
+    wrap.appendChild(im);wrap.appendChild(x);box.appendChild(wrap);
+  });
+  box.hidden=!photoDataUrls.length;
 }
 
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
@@ -297,7 +316,12 @@ function onState(s){
   s.active.forEach(function(m,i){
     var d=document.createElement('div');d.className='row'+(m.id===myId()?' me':'');
     var mk=m.done?esc(m.mark):'·';
-    if(m.photo){ mk+=' <a href="https://drive.google.com/file/d/'+esc(m.photo)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷</a>'; }
+    if(m.photo){
+      var ids=String(m.photo).split(',').filter(Boolean);
+      ids.forEach(function(pid,pi){
+        mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>';
+      });
+    }
     d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div>'+
       '<div class="mk '+(m.done?'on':'off')+'">'+mk+'</div>';
     L.appendChild(d);
@@ -365,10 +389,10 @@ function submit(){
   ITEMS.forEach(function(it,i){var el=document.getElementById('it'+i);r['i'+i]=el?el.value.trim():'';});
   setMe(id);
   var payload={memberId:id, mark:mark, routine:r};
-  var hasPhoto=(MODE==='photo' && photoDataUrl);
-  if(hasPhoto) payload.photo=photoDataUrl;
+  var hasPhoto=(MODE==='photo' && photoDataUrls.length);
+  if(hasPhoto) payload.photos=photoDataUrls;
   var btn=document.getElementById('w-submit');btn.disabled=true;
-  btn.textContent=hasPhoto?'사진 올리는 중…':'저장 중…';
+  btn.textContent=hasPhoto?('사진 '+photoDataUrls.length+'장 올리는 중…'):'저장 중…';
   call('submit',payload).then(function(s){
     onState(s);btn.disabled=false;btn.textContent='✅ 인증 완료';
     var nm='';s.active.concat(s.waiting).forEach(function(x){if(x.id===id)nm=x.name;});
@@ -377,7 +401,7 @@ function submit(){
     var isApp=(MODE==='app');
     document.getElementById('sh-my').hidden=!isApp;
     document.getElementById('sh-mynote').hidden=isApp;
-    if(hasPhoto){ photoDataUrl=''; var pv=document.getElementById('w-photoprev');if(pv){pv.hidden=true;pv.src='';}
+    if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
     toast(hasPhoto?'📸 사진 인증 완료! 🎉':'인증 완료! 🎉');
   }).catch(function(e){btn.disabled=false;btn.textContent='✅ 인증 완료';
@@ -418,6 +442,7 @@ function shareOrCopy(text,msg){
 }
 function shareMy(){ shareOrCopy(myTenkoaText(),'내 텐코아 복사됨 — 카톡에 붙여넣기'); }
 function shareBoard(){ shareOrCopy(boardText(),'명단 복사됨 — 카톡에 붙여넣기'); }
+function shareBoth(){ shareOrCopy(myTenkoaText()+'\n\n────────────\n\n'+boardText(),'내 텐코아+명단 복사됨 — 카톡에 붙여넣기'); }
 
 function copyEl(id){ copyText(document.getElementById(id).value,'복사했어요!'); }
 function copyText(txt,msg){
