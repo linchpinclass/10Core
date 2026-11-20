@@ -172,9 +172,9 @@ select{appearance:none;font-weight:700}
     <div id="w-after" hidden>
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
       <button class="btn primary" id="sh-both" style="margin-top:10px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
-      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 올린 사진은 <b>명단에서 📷</b>를 눌러 볼 수 있어요</div>
+      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 <b>함께 공유</b>를 누르면 올린 사진이 카톡으로 바로 가요 (명단에선 📷로도 확인)</div>
       <div class="btnrow">
-        <button class="btn ghost sm" id="sh-my" onclick="shareMy()">📝 내 텐코아만</button>
+        <button class="btn ghost sm" id="sh-my" onclick="shareMineBtn()">📝 내 텐코아만</button>
         <button class="btn ghost sm" onclick="shareBoard()">📋 명단만</button>
       </div>
       <div class="hint" style="text-align:center">모바일: 공유 → 카톡 선택 · PC: 복사 후 붙여넣기</div>
@@ -247,7 +247,14 @@ var ITEMS=[
 ];
 var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
-var photoDataUrls=[];
+var photoDataUrls=[];     // 아직 제출 전 선택한 사진들
+var sharedPhotos=[];      // 제출 완료 후 공유용으로 보관하는 사진들
+function dataUrlToFile(u, name){
+  var parts=String(u).split(','), mime=((parts[0].match(/:(.*?);/))||[])[1]||'image/jpeg';
+  var bin=atob(parts[1]||''), n=bin.length, arr=new Uint8Array(n);
+  for(var i=0;i<n;i++) arr[i]=bin.charCodeAt(i);
+  return new File([arr], name, {type:mime});
+}
 function onPhotoPick(ev){
   var files=ev.target.files; if(!files||!files.length) return;
   Array.prototype.slice.call(files).forEach(function(f){
@@ -399,7 +406,9 @@ function submit(){
     document.getElementById('w-aftername').textContent=nm;
     document.getElementById('w-after').hidden=false;
     var isApp=(MODE==='app');
-    document.getElementById('sh-my').hidden=!isApp;
+    sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
+    document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
+    document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
     if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
@@ -442,7 +451,46 @@ function shareOrCopy(text,msg){
 }
 function shareMy(){ shareOrCopy(myTenkoaText(),'내 텐코아 복사됨 — 카톡에 붙여넣기'); }
 function shareBoard(){ shareOrCopy(boardText(),'명단 복사됨 — 카톡에 붙여넣기'); }
-function shareBoth(){ shareOrCopy(myTenkoaText()+'\n\n────────────\n\n'+boardText(),'내 텐코아+명단 복사됨 — 카톡에 붙여넣기'); }
+// 작은 버튼: 사진 모드면 사진만, 앱 모드면 텐코아 글만
+function shareMineBtn(){ if(sharedPhotos.length) sharePhotos(); else shareMy(); }
+// 올린 사진들을 실제 이미지 파일로 카톡 공유
+function sharePhotos(){
+  if(!sharedPhotos.length){ toast('공유할 사진이 없어요'); return; }
+  try{
+    var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'텐코아_'+(i+1)+'.jpg');});
+    if(navigator.canShare && navigator.canShare({files:files})){
+      navigator.share({files:files}).catch(function(err){ if(err&&err.name!=='AbortError') toast('사진 공유 취소/실패 — 명단의 📷로도 볼 수 있어요'); });
+      return;
+    }
+  }catch(e){}
+  toast('이 기기는 사진 직접 공유 미지원 — 명단의 📷 링크로 보여요');
+}
+// 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
+function shareBoth(){
+  if(sharedPhotos.length){
+    try{
+      var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'텐코아_'+(i+1)+'.jpg');});
+      // ① 사진 + 명단 글을 한 번에
+      if(navigator.canShare && navigator.canShare({files:files, text:boardText()})){
+        navigator.share({files:files, text:boardText()})
+          .catch(function(err){ if(err&&err.name!=='AbortError') shareBoard(); });
+        return;
+      }
+      // ② 사진+글 동시 미지원 → 사진 먼저 보내고, 명단은 버튼 안내
+      if(navigator.canShare && navigator.canShare({files:files})){
+        navigator.share({files:files})
+          .then(function(){ toast('사진 전송! 이어서 아래 📋 명단만 버튼으로 명단도 보내주세요'); })
+          .catch(function(err){ if(err&&err.name!=='AbortError') shareBoard(); });
+        return;
+      }
+    }catch(e){}
+    // ③ 파일 공유 자체 미지원(주로 PC) → 명단 텍스트(사진은 📷 링크)
+    shareOrCopy(boardText(),'명단 복사됨 — 사진은 명단의 📷 링크로 보여요');
+    return;
+  }
+  // 앱 모드
+  shareOrCopy(myTenkoaText()+'\n\n────────────\n\n'+boardText(),'내 텐코아+명단 복사됨 — 카톡에 붙여넣기');
+}
 
 function copyEl(id){ copyText(document.getElementById(id).value,'복사했어요!'); }
 function copyText(txt,msg){
