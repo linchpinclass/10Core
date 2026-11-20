@@ -196,9 +196,9 @@ select{appearance:none;font-weight:700}
       </div>
     </div>
     <div class="card">
-      <div class="sectl">② 마감 반영 (오후 2시 후)</div>
-      <div class="hint" style="margin-top:0">안 쓴 사람 명단에서 내리고 · 대기자 7일차 승급 · <b>Day +1</b> 합니다. 하루 1번만!</div>
-      <button class="btn primary" style="margin-top:12px" onclick="finalize()">🔒 마감 반영하기</button>
+      <div class="sectl">② 마감 반영</div>
+      <div class="hint" style="margin-top:0"><b>매일 오후 2시 자동 마감</b>돼요 🤖 (안 쓴 사람 대기로 · 대기 2연속 미작성 완전제외 · 대기 7일 복귀 · Day+1). 미리 수동으로 할 수도 있어요(하루 1번).</div>
+      <button class="btn primary" style="margin-top:12px" onclick="finalize()">🔒 지금 수동 마감</button>
       <div id="a-finres" hidden class="okbox"></div>
     </div>
     <div class="card">
@@ -447,8 +447,9 @@ function finalize(){
     onState(r.state);
     var el=document.getElementById('a-finres');el.hidden=false;
     el.innerHTML='마감 완료! <b>Day '+r.newDay+'</b>'+
-      (r.removed.length?'<br>⬇ 내려감: '+r.removed.join(', '):'')+
-      (r.promoted.length?'<br>⬆ 합류: '+r.promoted.join(', '):'');
+      (r.removed&&r.removed.length?'<br>⬇ 대기로: '+r.removed.join(', '):'')+
+      (r.dropped&&r.dropped.length?'<br>❌ 완전 제외: '+r.dropped.join(', '):'')+
+      (r.promoted&&r.promoted.length?'<br>⬆ 복귀: '+r.promoted.join(', '):'');
     toast('마감 반영 완료 🔒');
   }).catch(function(e){toast('오류 — 다시 시도');});
 }
