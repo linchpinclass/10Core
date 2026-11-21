@@ -113,7 +113,7 @@ select{appearance:none;font-weight:700}
 </header>
 
 <div class="wrap">
-  <div id="inapp-warn" hidden style="background:#fff3cd;color:#664d03;border:1px solid #ffe69c;border-radius:12px;padding:11px 13px;margin-top:12px;font-size:12.5px;font-weight:600;line-height:1.55">
+  <div id="inapp-warn" hidden style="display:none !important;background:#fff3cd;color:#664d03;border:1px solid #ffe69c;border-radius:12px;padding:11px 13px;margin-top:12px;font-size:12.5px;font-weight:600;line-height:1.55">
     ⚠️ <b>카톡 공유(특히 사진)가 안 되나요?</b><br>지금 카톡·네이버 앱 안에서 열려 있어요. 우측 위 <b>⋮ 메뉴 → 다른 브라우저로 열기</b>(크롬·사파리)로 열면 사진·명단이 카톡으로 바로 공유돼요.
   </div>
   <div id="loading" class="card"><div class="spin"></div>
@@ -440,7 +440,7 @@ function boardText(){
   var t='['+STATE.title+' Day '+STATE.day+']\n';
   STATE.active.forEach(function(m,i){ t+=(i+1)+'.'+m.name+':'+(m.done?m.mark:'')+'\n'; });
   t+='━━━━━━━━━━\n';
-  STATE.waiting.forEach(function(m){ t+=m.name+':'+(m.streak?m.streak:'')+'\n'; });
+  STATE.waiting.forEach(function(m){ t+=m.name+':'+(m.streak?m.streak+'일차':'')+'\n'; });
   return t.trim();
 }
 function myTenkoaText(){
