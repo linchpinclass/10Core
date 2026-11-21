@@ -97,6 +97,7 @@ select{appearance:none;font-weight:700}
 .okbox{background:var(--soft);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px;font-weight:600}
 .okbox b{color:var(--coral)}
 </style>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <header>
@@ -174,7 +175,8 @@ select{appearance:none;font-weight:700}
     <button class="btn primary" id="w-submit" onclick="submit()">✅ 인증 완료</button>
     <div id="w-after" hidden>
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
-      <button class="btn primary" id="sh-both" style="margin-top:10px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
+      <button class="btn primary" id="sh-kakao" hidden style="margin-top:10px;background:#FEE500;color:#191600" onclick="kakaoShare()">💬 카톡으로 사진+명단 보내기</button>
+      <button class="btn primary" id="sh-both" style="margin-top:8px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
       <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 <b>함께 공유</b>를 누르면 올린 사진이 카톡으로 바로 가요 (명단에선 📷로도 확인)</div>
       <div class="btnrow">
         <button class="btn ghost sm" id="sh-my" onclick="shareMineBtn()">📝 내 텐코아만</button>
@@ -224,6 +226,9 @@ select{appearance:none;font-weight:700}
 <script>
 /* ===== Apps Script API ===== */
 var API='https://script.google.com/macros/s/AKfycbxOWrEEcothM3Ty1vaWXCLNcyZimZ92r8mxjzKJavoqrqP_CRSVVHSX66qxZFbQ_aaK7g/exec';
+var APPURL='https://linchpinclass.github.io/10Core/';
+var KAKAO_JS_KEY='8b9aea92ba43e7f5ae3b027305059474';
+try{ if(window.Kakao && !Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY); }catch(e){}
 function call(action, data){
   if(action==='state'){
     return fetch(API+'?action=state').then(function(r){return r.json();});
@@ -252,6 +257,7 @@ var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
 var photoDataUrls=[];     // 아직 제출 전 선택한 사진들
 var sharedPhotos=[];      // 제출 완료 후 공유용으로 보관하는 사진들
+var shareMeta={};         // 카카오 공유용(이름/Day/사진ID)
 // 카톡·네이버 등 '인앱 브라우저'면 Web Share가 막혀 공유창이 안 뜸 → 안내
 function isInApp(){
   var ua=(navigator.userAgent||'');
@@ -416,9 +422,12 @@ function submit(){
     document.getElementById('w-after').hidden=false;
     var isApp=(MODE==='app');
     sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
+    var _me=null; s.active.concat(s.waiting).forEach(function(x){if(x.id===id)_me=x;});
+    shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'' };
     document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
+    var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=!sharedPhotos.length;
     if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
     toast(hasPhoto?'📸 사진 인증 완료! 🎉':'인증 완료! 🎉');
@@ -474,6 +483,22 @@ function sharePhotos(){
   }catch(e){}
   var w1=document.getElementById('inapp-warn'); if(w1) w1.hidden=false;
   toast('사진 공유는 크롬·사파리에서 열어야 돼요 (상단 배너 참고) 📸');
+}
+// 카카오톡 공유(인앱에서도 됨): 사진1장+요약 카드 + 명단은 클립보드 복사
+function kakaoReady(){ try{ if(window.Kakao){ if(!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY); return !!Kakao.Share; } }catch(e){} return false; }
+function kakaoShare(){
+  if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
+  var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
+  var img = ids.length ? ('https://drive.google.com/thumbnail?id='+ids[0]+'&sz=w800') : (APPURL+'ogimg.png');
+  var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
+  var desc=(shareMeta.name||'')+'님 오늘 텐코아 인증 완료 ✅ · 전체 명단·사진은 아래 버튼에서 확인!';
+  try{
+    Kakao.Share.sendDefault({ objectType:'feed',
+      content:{ title:title, description:desc, imageUrl:img, link:{ mobileWebUrl:APPURL, webUrl:APPURL } },
+      buttons:[{ title:'명단·앱 열기', link:{ mobileWebUrl:APPURL, webUrl:APPURL } }] });
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(boardText()); }catch(e){}
+    toast('카톡 공유창 열었어요! 전체 명단도 복사됨(붙여넣기) 📋');
+  }catch(e){ toast('카카오 공유 실패 — 다시 시도'); }
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
 function shareBoth(){
