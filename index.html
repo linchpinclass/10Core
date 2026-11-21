@@ -271,11 +271,11 @@ function onPhotoPick(ev){
     reader.onload=function(e){
       var img=new Image();
       img.onload=function(){
-        var max=1200,w=img.width,h=img.height;
+        var max=1000,w=img.width,h=img.height;
         if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
         var cv=document.createElement('canvas');cv.width=w;cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        photoDataUrls.push(cv.toDataURL('image/jpeg',0.8));
+        var ctx=cv.getContext('2d');ctx.imageSmoothingQuality='high';ctx.drawImage(img,0,0,w,h);
+        photoDataUrls.push(cv.toDataURL('image/jpeg',0.72));
         renderPhotoPrev();
         toast(photoDataUrls.length+'장 선택됨 — 인증 완료를 눌러주세요 📸');
       };
@@ -345,7 +345,7 @@ function onState(s){
   var ww=document.getElementById('b-waitwrap'), W=document.getElementById('b-wait');
   if(s.waiting.length){ ww.hidden=false; W.innerHTML='';
     s.waiting.forEach(function(m){var d=document.createElement('div');d.className='row';
-      d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+m.streak+'일'+
+      d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+(m.streak?m.streak+'일':'')+
         (m.done?' ✔':'')+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
   buildWrite();
@@ -431,7 +431,7 @@ function boardText(){
   var t='['+STATE.title+' Day '+STATE.day+']\n';
   STATE.active.forEach(function(m,i){ t+=(i+1)+'.'+m.name+':'+(m.done?m.mark:'')+'\n'; });
   t+='━━━━━━━━━━\n';
-  STATE.waiting.forEach(function(m){ t+=m.name+':'+m.streak+'\n'; });
+  STATE.waiting.forEach(function(m){ t+=m.name+':'+(m.streak?m.streak:'')+'\n'; });
   return t.trim();
 }
 function myTenkoaText(){
