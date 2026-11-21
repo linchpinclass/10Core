@@ -423,7 +423,7 @@ function submit(){
     var isApp=(MODE==='app');
     sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
     var _me=null; s.active.concat(s.waiting).forEach(function(x){if(x.id===id)_me=x;});
-    shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'' };
+    shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'', done:s.doneCount, total:s.totalCount };
     document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
@@ -491,7 +491,7 @@ function kakaoShare(){
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
   var img = ids.length ? ('https://drive.google.com/thumbnail?id='+ids[0]+'&sz=w800') : (APPURL+'ogimg.png');
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
-  var desc=(shareMeta.name||'')+'님 오늘 텐코아 인증 완료 ✅ · 전체 명단·사진은 아래 버튼에서 확인!';
+  var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
   try{
     Kakao.Share.sendDefault({ objectType:'feed',
       content:{ title:title, description:desc, imageUrl:img, link:{ mobileWebUrl:APPURL, webUrl:APPURL } },
