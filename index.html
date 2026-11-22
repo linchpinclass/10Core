@@ -444,7 +444,16 @@ function submit(){
     if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
     if(hasLink){
-      if(_me && _me.photo){ document.getElementById('w-link').value=''; toast('🔗 노션 캡처 인증 완료! 🎉'); }
+      if(_me && _me.photo){
+        document.getElementById('w-link').value=''; toast('🔗 노션 캡처 인증 완료! 🎉');
+        // 캡처 이미지를 받아와 sharedPhotos에 넣기 → '📤 사진+명단 함께 공유'(실제 파일 전송)가 사진모드처럼 동작
+        (function(){ var _fid=String(_me.photo).split(',')[0];
+          fetch(cardImgSrc(_fid)).then(function(res){return res.blob();}).then(function(blob){
+            var fr=new FileReader(); fr.onload=function(){ sharedPhotos=[fr.result];
+              var mn=document.getElementById('sh-mynote'); if(mn) mn.hidden=false; }; fr.readAsDataURL(blob);
+          }).catch(function(){});
+        })();
+      }
       else { toast('캡처 실패 😢 노션이 "웹에 게시"로 공개됐는지 확인해주세요'); }
     } else {
       toast(hasPhoto?'📸 사진 인증 완료! 🎉':'인증 완료! 🎉');
