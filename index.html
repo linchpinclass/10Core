@@ -188,6 +188,7 @@ select{appearance:none;font-weight:700}
     <button class="btn primary" id="w-submit" onclick="submit()">✅ 인증 완료</button>
     <div id="w-after" hidden>
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
+      <div id="w-cardprev" hidden style="margin-top:12px"></div>
       <button class="btn primary" id="sh-kakao" hidden style="margin-top:10px;background:#FEE500;color:#191600" onclick="kakaoShare()">💬 카톡으로 사진+명단 보내기</button>
       <button class="btn primary" id="sh-both" style="margin-top:8px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
       <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 <b>함께 공유</b>를 누르면 올린 사진이 카톡으로 바로 가요 (명단에선 📷로도 확인)</div>
@@ -549,6 +550,18 @@ function submit(){
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
     var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=!(sharedPhotos.length || (_me&&_me.photo));
+    var cardbox=document.getElementById('w-cardprev'); if(cardbox){ cardbox.hidden=!isApp; cardbox.innerHTML=''; }
+    if(isApp){
+      if(cardbox) cardbox.innerHTML='<div class="hint" style="margin:2px 0 7px">📸 쓴 텐코아를 사진으로 만드는 중…</div><div class="spin"></div>';
+      drawTenkoaCard(nm, s.day, s.title).then(function(dataUrl){
+        sharedPhotos=[dataUrl];
+        if(cardbox) cardbox.innerHTML='<div class="hint" style="margin:2px 0 7px">📸 이렇게 <b>사진</b>으로 공유돼요 (미리보기)</div>'+
+          '<img src="'+dataUrl+'" alt="텐코아 미리보기" style="width:100%;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)">';
+        var shk2=document.getElementById('sh-kakao'); if(shk2) shk2.hidden=false;
+        var mn2=document.getElementById('sh-mynote'); if(mn2){ mn2.hidden=false; mn2.innerHTML='📸 <b>함께 공유</b>·<b>카톡으로</b>를 누르면 위 <b>사진</b>이 그대로 전송돼요'; }
+        prewarmKakaoCard(dataUrl);
+      }).catch(function(){ if(cardbox){ cardbox.hidden=true; } });
+    }
     if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
     if(hasLink){
@@ -628,17 +641,66 @@ function cardImgSrc(fileId){
 }
 // 카톡은 '처음 보는' 외부 이미지URL은 카드에 못 띄움 → 이미지 바이트를 직접 카카오 서버(k.kakaocdn.net)에 업로드(uploadImage)해서 그 URL 사용
 // uploadImage는 카카오가 외부URL을 가져오는 게 아니라 우리가 바이트를 직접 올리므로 가장 확실함
+// 이미지 blob을 카카오 서버에 직접 업로드 → k.kakaocdn https URL 반환
+function uploadKakaoBlob(blob){
+  var file=new File([blob],'tenkoa.jpg',{type:(blob&&blob.type)||'image/jpeg'});
+  return Kakao.Share.uploadImage({ file:[file] })
+    .then(function(r){ return ((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); });
+}
+function dataUrlToBlob(u){ return fetch(u).then(function(r){ return r.blob(); }); }
 function uploadKakaoImg(fileId){
-  return fetch(cardImgSrc(fileId)).then(function(res){ return res.blob(); }).then(function(blob){
-    var file=new File([blob],'tenkoa.jpg',{type:'image/jpeg'});
-    return Kakao.Share.uploadImage({ file:[file] });
-  }).then(function(r){ return ((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); });
+  return fetch(cardImgSrc(fileId)).then(function(res){ return res.blob(); }).then(uploadKakaoBlob);
 }
 function prewarmKakaoImg(photo){
   try{
     if(!window.Kakao || !Kakao.isInitialized() || !Kakao.Share || !Kakao.Share.uploadImage) return;
     var ids=String(photo||'').split(',').filter(Boolean); if(!ids.length) return;
     uploadKakaoImg(ids[0]).then(function(u){ shareMeta.kakaoImg=u; }).catch(function(){});
+  }catch(e){}
+}
+// 앱에서 쓴 텐코아 → 사진 양식(캔버스 이미지)으로 렌더 → dataURL(Promise 반환)
+function drawTenkoaCard(name, day, title){
+  var ready=(document.fonts&&document.fonts.ready)?document.fonts.ready:Promise.resolve();
+  return ready.then(function(){
+    var W=1080, pad=72, FS='"Pretendard Variable",Pretendard,-apple-system,sans-serif';
+    var fLabel='800 37px '+FS, fVal='500 35px '+FS, maxW=W-pad*2;
+    var mc=document.createElement('canvas'), mx=mc.getContext('2d');
+    function wrap(text,font){ mx.font=font; var lines=[],cur='';
+      for(var k=0;k<text.length;k++){ var ch=text[k];
+        if(ch==='\n'){ lines.push(cur); cur=''; continue; }
+        var t=cur+ch;
+        if(mx.measureText(t).width>maxW && cur){ lines.push(cur); cur=ch; } else cur=t; }
+      if(cur!==''||!lines.length) lines.push(cur); return lines; }
+    var items=[];
+    ITEMS.forEach(function(it,i){ var el=document.getElementById('it'+i); var v=el?el.value.trim():''; if(v) items.push([it[0],v]); });
+    var blocks=items.map(function(p){ return { label:p[0], valLines:wrap(p[1],fVal) }; });
+    var headerH=210, topPad=56, labelH=50, valH=47, blockGap=30, footerH=96;
+    var bodyH=0; blocks.forEach(function(b){ bodyH+=labelH+b.valLines.length*valH+blockGap; });
+    if(!blocks.length) bodyH=140;
+    var H=headerH+topPad+bodyH+footerH;
+    var c=document.createElement('canvas'); c.width=W; c.height=H; var ctx=c.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+    var g=ctx.createLinearGradient(0,0,W,headerH); g.addColorStop(0,'#ff5a3c'); g.addColorStop(1,'#ffb11b');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,headerH);
+    ctx.textBaseline='alphabetic'; ctx.fillStyle='#ffffff';
+    ctx.font='700 33px '+FS; ctx.fillText('🔥 '+(title||'텐코아')+'  ·  Day '+day, pad, 84);
+    ctx.font='800 64px '+FS; ctx.fillText(name, pad, 162);
+    var y=headerH+topPad+10;
+    if(!blocks.length){ ctx.fillStyle='#8a7a6a'; ctx.font=fVal; ctx.fillText('오늘 텐코아 인증 완료 ✅', pad, y); }
+    blocks.forEach(function(b){
+      ctx.fillStyle='#ff5a3c'; ctx.font=fLabel; ctx.fillText(b.label, pad, y); y+=labelH;
+      ctx.fillStyle='#20160f'; ctx.font=fVal; b.valLines.forEach(function(ln){ ctx.fillText(ln, pad, y); y+=valH; });
+      y+=blockGap;
+    });
+    ctx.fillStyle='#efe4d6'; ctx.fillRect(pad,H-footerH+8,maxW,2);
+    ctx.fillStyle='#8a7a6a'; ctx.font='700 28px '+FS; ctx.textAlign='right';
+    ctx.fillText('린치핀 텐코아 · 10 Core', W-pad, H-38); ctx.textAlign='left';
+    return c.toDataURL('image/jpeg',0.92);
+  });
+}
+function prewarmKakaoCard(dataUrl){
+  try{ if(!window.Kakao||!Kakao.isInitialized()||!Kakao.Share||!Kakao.Share.uploadImage) return;
+    dataUrlToBlob(dataUrl).then(uploadKakaoBlob).then(function(u){ shareMeta.kakaoImg=u; }).catch(function(){});
   }catch(e){}
 }
 function kakaoShare(){
@@ -656,7 +718,15 @@ function kakaoShare(){
     }catch(e){ toast('카카오 공유 실패 — 다시 시도'); }
   }
   if(shareMeta.kakaoImg){ send(shareMeta.kakaoImg); return; }
-  if(!ids.length){ send(APPURL+'ogimg.png'); return; }
+  if(!ids.length){
+    if(sharedPhotos.length){ toast('이미지 준비 중… 잠시만요');
+      dataUrlToBlob(sharedPhotos[0]).then(uploadKakaoBlob)
+        .then(function(u){ shareMeta.kakaoImg=u; send(u||APPURL+'ogimg.png'); })
+        .catch(function(){ send(APPURL+'ogimg.png'); });
+      return;
+    }
+    send(APPURL+'ogimg.png'); return;
+  }
   toast('이미지 준비 중… 잠시만요');
   uploadKakaoImg(ids[0])
     .then(function(u){ shareMeta.kakaoImg=u; send(u||cardImgSrc(ids[0])); })
