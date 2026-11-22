@@ -91,7 +91,7 @@ select{appearance:none;font-weight:700}
 .pin{letter-spacing:4px;text-align:center;font-weight:800}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
   background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:999px;font-weight:700;font-size:13.5px;
-  opacity:0;transition:.25s;z-index:50;box-shadow:var(--shadow);max-width:90vw;text-align:center}
+  opacity:0;transition:.25s;z-index:50;box-shadow:var(--shadow);max-width:90vw;text-align:center;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .center{text-align:center;color:var(--sub);padding:30px 0;font-weight:600}
 .spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--coral);border-radius:50%;
@@ -179,7 +179,10 @@ select{appearance:none;font-weight:700}
         <div id="w-photoprev" hidden style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
         <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
           <div class="t" style="font-weight:800;font-size:13px">🔗 노션 링크로 인증 <em style="color:var(--coral);font-weight:700;font-size:11px">캡처 없이 자동!</em></div>
-          <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:13.5px;font-family:inherit;margin-top:8px">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" autocomplete="off" autocapitalize="off" spellcheck="false" onclick="this.focus()" style="flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:13.5px;font-family:inherit">
+            <button type="button" class="btn ghost sm" style="width:auto;padding:11px 14px;margin:0;white-space:nowrap" onclick="pasteLink()">📋 붙여넣기</button>
+          </div>
           <div class="hint" style="margin-top:7px;line-height:1.55">노션에서 <b>··· → 공유 → 웹에 게시</b>된 링크만 돼요. 붙여넣고 <b>인증 완료</b>를 누르면 페이지가 <b>자동 캡처</b>돼 📸 (사진이랑 둘 중 하나만)</div>
         </div>
       </div>
@@ -473,6 +476,19 @@ function loadHistory(){
   }).catch(function(){ L.innerHTML='<div class="center">불러오기 실패 😢</div>'; });
 }
 
+// 노션 링크 붙여넣기 (입력칸에 타이핑/붙여넣기 안 될 때 대비한 확실한 경로)
+function pasteLink(){
+  var el=document.getElementById('w-link'); if(!el) return;
+  el.focus();
+  if(navigator.clipboard && navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(t){
+      t=(t||'').trim();
+      if(t){ el.value=t; toast('링크 붙여넣었어요 ✅'); }
+      else { toast('복사된 링크가 없어요 — 노션 링크를 먼저 복사해주세요'); }
+    }).catch(function(){ toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); el.focus(); });
+  } else { toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); el.focus(); }
+}
+
 function myId(){try{return localStorage.getItem('tenkoa_me')||'';}catch(e){return '';}}
 function setMe(id){try{localStorage.setItem('tenkoa_me',id);}catch(e){}}
 
@@ -663,8 +679,7 @@ function drawTenkoaCard(name, day, title){
   var ready=(document.fonts&&document.fonts.ready)?document.fonts.ready:Promise.resolve();
   return ready.then(function(){
     var W=1080, pad=72, FS='"Pretendard Variable",Pretendard,-apple-system,sans-serif';
-    var fLabel='800 37px '+FS, fVal='500 35px '+FS, maxW=W-pad*2;
-    var mc=document.createElement('canvas'), mx=mc.getContext('2d');
+    var maxW=W-pad*2, mx=document.createElement('canvas').getContext('2d');
     function wrap(text,font){ mx.font=font; var lines=[],cur='';
       for(var k=0;k<text.length;k++){ var ch=text[k];
         if(ch==='\n'){ lines.push(cur); cur=''; continue; }
@@ -673,13 +688,22 @@ function drawTenkoaCard(name, day, title){
       if(cur!==''||!lines.length) lines.push(cur); return lines; }
     var items=[];
     ITEMS.forEach(function(it,i){ var el=document.getElementById('it'+i); var v=el?el.value.trim():''; if(v) items.push([it[0],v]); });
-    var blocks=items.map(function(p){ return { label:p[0], valLines:wrap(p[1],fVal) }; });
-    var headerH=210, topPad=56, labelH=50, valH=47, blockGap=30, footerH=96;
-    var bodyH=0; blocks.forEach(function(b){ bodyH+=labelH+b.valLines.length*valH+blockGap; });
-    if(!blocks.length) bodyH=140;
-    var naturalH=headerH+topPad+bodyH+footerH;
-    var H=Math.max(W, naturalH);            // 최대한 1:1 — 내용 적으면 1080 정사각, 많으면 그만큼만 길어짐
-    var extra=H-naturalH;
+    var headerH=210, topPad=44, footerH=96;
+    var availH=W-headerH-topPad-footerH;   // 1080 정사각 기준 본문 가용 높이
+    function layout(sc){
+      var fLabel='800 '+(37*sc)+'px '+FS, fVal='500 '+(35*sc)+'px '+FS;
+      var labelH=50*sc, valH=47*sc, blockGap=30*sc;
+      var blocks=items.map(function(p){ return { label:p[0], valLines:wrap(p[1],fVal) }; });
+      var bodyH=0; blocks.forEach(function(b){ bodyH+=labelH+b.valLines.length*valH+blockGap; });
+      if(!blocks.length) bodyH=140;
+      return { blocks:blocks, bodyH:bodyH, fLabel:fLabel, fVal:fVal, labelH:labelH, valH:valH, blockGap:blockGap, sc:sc };
+    }
+    // 1080 정사각 안에 들어가도록 글자 크기 자동 축소(최소 0.55배). 그래도 넘치면 그만큼만 세로로 길어짐.
+    var minScale=0.55, s=1, Lo=layout(1), guard=0;
+    while(Lo.bodyH>availH && s>minScale && guard<10){ s=Math.max(minScale, s*availH/Lo.bodyH*0.99); Lo=layout(s); guard++; }
+    var H, extra;
+    if(Lo.bodyH<=availH){ H=W; extra=availH-Lo.bodyH; }   // 1:1 정사각
+    else { H=headerH+topPad+Lo.bodyH+footerH; extra=0; }   // 최소축소로도 안 되면 그만큼만 길어짐
     var c=document.createElement('canvas'); c.width=W; c.height=H; var ctx=c.getContext('2d');
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
     var g=ctx.createLinearGradient(0,0,W,headerH); g.addColorStop(0,'#ff5a3c'); g.addColorStop(1,'#ffb11b');
@@ -687,12 +711,12 @@ function drawTenkoaCard(name, day, title){
     ctx.textBaseline='alphabetic'; ctx.fillStyle='#ffffff';
     ctx.font='700 33px '+FS; ctx.fillText('🔥 '+(title||'텐코아')+'  ·  Day '+day, pad, 84);
     ctx.font='800 64px '+FS; ctx.fillText(name, pad, 162);
-    var y=headerH+topPad+10+Math.round(extra/2);   // 남는 공간만큼 본문을 세로 가운데로
-    if(!blocks.length){ ctx.fillStyle='#8a7a6a'; ctx.font=fVal; ctx.fillText('오늘 텐코아 인증 완료 ✅', pad, y); }
-    blocks.forEach(function(b){
-      ctx.fillStyle='#ff5a3c'; ctx.font=fLabel; ctx.fillText(b.label, pad, y); y+=labelH;
-      ctx.fillStyle='#20160f'; ctx.font=fVal; b.valLines.forEach(function(ln){ ctx.fillText(ln, pad, y); y+=valH; });
-      y+=blockGap;
+    var y=headerH+topPad+Math.round(extra/2)+Math.round(40*Lo.sc);
+    if(!Lo.blocks.length){ ctx.fillStyle='#8a7a6a'; ctx.font=Lo.fVal; ctx.fillText('오늘 텐코아 인증 완료 ✅', pad, y); }
+    Lo.blocks.forEach(function(b){
+      ctx.fillStyle='#ff5a3c'; ctx.font=Lo.fLabel; ctx.fillText(b.label, pad, y); y+=Lo.labelH;
+      ctx.fillStyle='#20160f'; ctx.font=Lo.fVal; b.valLines.forEach(function(ln){ ctx.fillText(ln, pad, y); y+=Lo.valH; });
+      y+=Lo.blockGap;
     });
     ctx.fillStyle='#efe4d6'; ctx.fillRect(pad,H-footerH+8,maxW,2);
     ctx.fillStyle='#8a7a6a'; ctx.font='700 28px '+FS; ctx.textAlign='right';
