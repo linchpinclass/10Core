@@ -514,7 +514,7 @@ function prewarmKakaoImg(photo){
     if(!window.Kakao || !Kakao.isInitialized() || !Kakao.Share || !Kakao.Share.scrapImage) return;
     var ids=String(photo||'').split(',').filter(Boolean); if(!ids.length) return;
     Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
-      .then(function(r){ shareMeta.kakaoImg=(r&&r.infos&&r.infos.original&&r.infos.original.url)||''; })
+      .then(function(r){ shareMeta.kakaoImg=((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); })
       .catch(function(){});
   }catch(e){}
 }
@@ -536,7 +536,7 @@ function kakaoShare(){
   if(!ids.length){ send(APPURL+'ogimg.png'); return; }
   toast('이미지 준비 중… 잠시만요');
   Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
-    .then(function(r){ var ku=(r&&r.infos&&r.infos.original&&r.infos.original.url)||''; shareMeta.kakaoImg=ku; send(ku||cardImgSrc(ids[0])); })
+    .then(function(r){ var ku=((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); shareMeta.kakaoImg=ku; send(ku||cardImgSrc(ids[0])); })
     .catch(function(){ send(cardImgSrc(ids[0])); });
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
