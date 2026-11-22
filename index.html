@@ -677,7 +677,9 @@ function drawTenkoaCard(name, day, title){
     var headerH=210, topPad=56, labelH=50, valH=47, blockGap=30, footerH=96;
     var bodyH=0; blocks.forEach(function(b){ bodyH+=labelH+b.valLines.length*valH+blockGap; });
     if(!blocks.length) bodyH=140;
-    var H=headerH+topPad+bodyH+footerH;
+    var naturalH=headerH+topPad+bodyH+footerH;
+    var H=Math.max(W, naturalH);            // 최대한 1:1 — 내용 적으면 1080 정사각, 많으면 그만큼만 길어짐
+    var extra=H-naturalH;
     var c=document.createElement('canvas'); c.width=W; c.height=H; var ctx=c.getContext('2d');
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
     var g=ctx.createLinearGradient(0,0,W,headerH); g.addColorStop(0,'#ff5a3c'); g.addColorStop(1,'#ffb11b');
@@ -685,7 +687,7 @@ function drawTenkoaCard(name, day, title){
     ctx.textBaseline='alphabetic'; ctx.fillStyle='#ffffff';
     ctx.font='700 33px '+FS; ctx.fillText('🔥 '+(title||'텐코아')+'  ·  Day '+day, pad, 84);
     ctx.font='800 64px '+FS; ctx.fillText(name, pad, 162);
-    var y=headerH+topPad+10;
+    var y=headerH+topPad+10+Math.round(extra/2);   // 남는 공간만큼 본문을 세로 가운데로
     if(!blocks.length){ ctx.fillStyle='#8a7a6a'; ctx.font=fVal; ctx.fillText('오늘 텐코아 인증 완료 ✅', pad, y); }
     blocks.forEach(function(b){
       ctx.fillStyle='#ff5a3c'; ctx.font=fLabel; ctx.fillText(b.label, pad, y); y+=labelH;
