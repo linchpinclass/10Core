@@ -434,7 +434,9 @@ function submit(){
     var isApp=(MODE==='app');
     sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
     var _me=null; s.active.concat(s.waiting).forEach(function(x){if(x.id===id)_me=x;});
-    shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'', done:s.doneCount, total:s.totalCount };
+    shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'', done:s.doneCount, total:s.totalCount, kakaoImg:'' };
+    // 미리 카카오 서버에 카드이미지 올려두기(pre-warm) → 공유 버튼 탭 시 바로 뜸
+    prewarmKakaoImg(shareMeta.photo);
     document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
@@ -502,20 +504,40 @@ function sharePhotos(){
 }
 // 카카오톡 공유(인앱에서도 됨): 사진1장+요약 카드 + 명단은 클립보드 복사
 function kakaoReady(){ try{ if(window.Kakao){ if(!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY); return !!Kakao.Share; } }catch(e){} return false; }
+// 드라이브 파일 → 카드비율(2:1) 깨끗한 이미지(weserv 프록시, 원본 직접 → 생성 즉시 사용 가능)
+function cardImgSrc(fileId){
+  return 'https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/uc?export=download&id='+fileId)+'&w=1000&h=520&fit=cover&output=jpg';
+}
+// 카톡은 '처음 보는' 외부 이미지URL은 카드에 못 띄움(스크래핑 지연) → scrapImage로 카카오 서버(k.kakaocdn.net)에 미리 올려둠
+function prewarmKakaoImg(photo){
+  try{
+    if(!window.Kakao || !Kakao.isInitialized() || !Kakao.Share || !Kakao.Share.scrapImage) return;
+    var ids=String(photo||'').split(',').filter(Boolean); if(!ids.length) return;
+    Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
+      .then(function(r){ shareMeta.kakaoImg=(r&&r.infos&&r.infos.original&&r.infos.original.url)||''; })
+      .catch(function(){});
+  }catch(e){}
+}
 function kakaoShare(){
   if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
-  // 카드용 이미지: 카톡 스크래퍼가 구글드라이브(lh3 리다이렉트)를 못 가져와서, weserv 프록시로 리다이렉트 없는 2:1 크롭 이미지 제공
-  var img = ids.length ? ('https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/thumbnail?id='+ids[0]+'&sz=w1200')+'&w=1000&h=520&fit=cover&output=jpg') : (APPURL+'ogimg.png');
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
   var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
-  try{
-    Kakao.Share.sendDefault({ objectType:'feed',
-      content:{ title:title, description:desc, imageUrl:img, link:{ mobileWebUrl:APPURL, webUrl:APPURL } },
-      buttons:[{ title:'명단·앱 열기', link:{ mobileWebUrl:APPURL, webUrl:APPURL } }] });
-    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(boardText()); }catch(e){}
-    toast('카톡 공유창 열었어요! 전체 명단도 복사됨(붙여넣기) 📋');
-  }catch(e){ toast('카카오 공유 실패 — 다시 시도'); }
+  function send(imgUrl){
+    try{
+      Kakao.Share.sendDefault({ objectType:'feed',
+        content:{ title:title, description:desc, imageUrl:imgUrl, link:{ mobileWebUrl:APPURL, webUrl:APPURL } },
+        buttons:[{ title:'명단·앱 열기', link:{ mobileWebUrl:APPURL, webUrl:APPURL } }] });
+      try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(boardText()); }catch(e){}
+      toast('카톡 공유창 열었어요! 전체 명단도 복사됨(붙여넣기) 📋');
+    }catch(e){ toast('카카오 공유 실패 — 다시 시도'); }
+  }
+  if(shareMeta.kakaoImg){ send(shareMeta.kakaoImg); return; }
+  if(!ids.length){ send(APPURL+'ogimg.png'); return; }
+  toast('이미지 준비 중… 잠시만요');
+  Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
+    .then(function(r){ var ku=(r&&r.infos&&r.infos.original&&r.infos.original.url)||''; shareMeta.kakaoImg=ku; send(ku||cardImgSrc(ids[0])); })
+    .catch(function(){ send(cardImgSrc(ids[0])); });
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
 function shareBoth(){
