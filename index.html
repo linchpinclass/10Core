@@ -556,6 +556,18 @@ function kakaoShare(){
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
 function shareBoth(){
+  // 링크 인증인데 아직 이미지 다운로드 전이면, 지금 받아서 다시 시도(두 번째 탭은 바로 됨)
+  if(!sharedPhotos.length && shareMeta && shareMeta.photo){
+    toast('이미지 준비 중… 잠시 후 다시 눌러주세요');
+    var _fid=String(shareMeta.photo).split(',')[0];
+    fetch(cardImgSrc(_fid)).then(function(res){return res.blob();}).then(function(blob){
+      var fr=new FileReader(); fr.onload=function(){ sharedPhotos=[fr.result]; doShareBoth(); }; fr.readAsDataURL(blob);
+    }).catch(function(){ doShareBoth(); });
+    return;
+  }
+  doShareBoth();
+}
+function doShareBoth(){
   if(sharedPhotos.length){
     try{
       var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'텐코아_'+(i+1)+'.jpg');});
