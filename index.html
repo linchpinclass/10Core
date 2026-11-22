@@ -506,7 +506,7 @@ function kakaoShare(){
   if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
   // 카드용 이미지: 세로로 긴 노션 캡처도 카드가 뜨도록 상단을 카드비율(≈2:1)로 크롭
-  var img = ids.length ? ('https://lh3.googleusercontent.com/d/'+ids[0]+'=w1000-h520-c') : (APPURL+'ogimg.png');
+  var img = ids.length ? ('https://drive.google.com/thumbnail?id='+ids[0]+'&sz=w1000-h520-c') : (APPURL+'ogimg.png');
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
   var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
   try{
