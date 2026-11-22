@@ -505,8 +505,8 @@ function kakaoReady(){ try{ if(window.Kakao){ if(!Kakao.isInitialized()) Kakao.i
 function kakaoShare(){
   if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
-  // 카드용 이미지: 세로로 긴 노션 캡처도 카드가 뜨도록 상단을 카드비율(≈2:1)로 크롭
-  var img = ids.length ? ('https://drive.google.com/thumbnail?id='+ids[0]+'&sz=w1000-h520-c') : (APPURL+'ogimg.png');
+  // 카드용 이미지: 카톡 스크래퍼가 구글드라이브(lh3 리다이렉트)를 못 가져와서, weserv 프록시로 리다이렉트 없는 2:1 크롭 이미지 제공
+  var img = ids.length ? ('https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/thumbnail?id='+ids[0]+'&sz=w1200')+'&w=1000&h=520&fit=cover&output=jpg') : (APPURL+'ogimg.png');
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
   var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
   try{
