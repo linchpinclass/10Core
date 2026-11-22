@@ -506,16 +506,22 @@ function sharePhotos(){
 function kakaoReady(){ try{ if(window.Kakao){ if(!Kakao.isInitialized()) Kakao.init(KAKAO_JS_KEY); return !!Kakao.Share; } }catch(e){} return false; }
 // 드라이브 파일 → 카드비율(2:1) 깨끗한 이미지(weserv 프록시, 원본 직접 → 생성 즉시 사용 가능)
 function cardImgSrc(fileId){
-  return 'https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/uc?export=download&id='+fileId)+'&w=1000&h=520&fit=cover&output=jpg';
+  // 드라이브 썸네일 경유: 대용량 노션캡처 PNG도 '바이러스검사 안내' 페이지 안 거치고 항상 직접 서빙됨(uc?export는 큰 파일서 막힘)
+  return 'https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/thumbnail?id='+fileId+'&sz=w1200')+'&w=1000&h=520&fit=cover&output=jpg';
 }
-// 카톡은 '처음 보는' 외부 이미지URL은 카드에 못 띄움(스크래핑 지연) → scrapImage로 카카오 서버(k.kakaocdn.net)에 미리 올려둠
+// 카톡은 '처음 보는' 외부 이미지URL은 카드에 못 띄움 → 이미지 바이트를 직접 카카오 서버(k.kakaocdn.net)에 업로드(uploadImage)해서 그 URL 사용
+// uploadImage는 카카오가 외부URL을 가져오는 게 아니라 우리가 바이트를 직접 올리므로 가장 확실함
+function uploadKakaoImg(fileId){
+  return fetch(cardImgSrc(fileId)).then(function(res){ return res.blob(); }).then(function(blob){
+    var file=new File([blob],'tenkoa.jpg',{type:'image/jpeg'});
+    return Kakao.Share.uploadImage({ file:[file] });
+  }).then(function(r){ return ((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); });
+}
 function prewarmKakaoImg(photo){
   try{
-    if(!window.Kakao || !Kakao.isInitialized() || !Kakao.Share || !Kakao.Share.scrapImage) return;
+    if(!window.Kakao || !Kakao.isInitialized() || !Kakao.Share || !Kakao.Share.uploadImage) return;
     var ids=String(photo||'').split(',').filter(Boolean); if(!ids.length) return;
-    Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
-      .then(function(r){ shareMeta.kakaoImg=((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); })
-      .catch(function(){});
+    uploadKakaoImg(ids[0]).then(function(u){ shareMeta.kakaoImg=u; }).catch(function(){});
   }catch(e){}
 }
 function kakaoShare(){
@@ -535,8 +541,8 @@ function kakaoShare(){
   if(shareMeta.kakaoImg){ send(shareMeta.kakaoImg); return; }
   if(!ids.length){ send(APPURL+'ogimg.png'); return; }
   toast('이미지 준비 중… 잠시만요');
-  Kakao.Share.scrapImage({ imageUrl: cardImgSrc(ids[0]) })
-    .then(function(r){ var ku=((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); shareMeta.kakaoImg=ku; send(ku||cardImgSrc(ids[0])); })
+  uploadKakaoImg(ids[0])
+    .then(function(u){ shareMeta.kakaoImg=u; send(u||cardImgSrc(ids[0])); })
     .catch(function(){ send(cardImgSrc(ids[0])); });
 }
 // 통합: 사진 모드면 (사진들 + 명단) / 앱 모드면 (내 텐코아 글 + 명단)
