@@ -334,11 +334,16 @@ function toast(m){var t=document.getElementById('toast');t.textContent=m;t.class
   clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show')},2200);}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 
-function go(v){
+var CURVIEW='board';   // 현재 보고 있는 탭 (onState가 이 탭만 유지)
+function showView(v){
   ['board','write','admin'].forEach(function(x){
-    document.getElementById('view-'+x).hidden=(x!==v);
-    document.getElementById('t-'+x).classList.toggle('on',x===v);
+    var el=document.getElementById('view-'+x); if(el) el.hidden=(x!==v);
+    var tb=document.getElementById('t-'+x); if(tb) tb.classList.toggle('on',x===v);
   });
+}
+function go(v){
+  CURVIEW=v;
+  showView(v);
   if(v==='admin' && !histLoaded){ histLoaded=true; fetchDays(); }
   window.scrollTo(0,0);
 }
@@ -353,7 +358,7 @@ function onErr(e){ document.getElementById('loading').innerHTML=
 function onState(s){
   STATE=s;
   document.getElementById('loading').hidden=true;
-  document.getElementById('view-board').hidden=false;
+  showView(CURVIEW);   // 명단을 강제로 띄우지 않고 현재 탭만 유지 (인증하기 위에 명단 끼어드는 버그 수정)
   DAYNAV.today=s.dateKey; DAYNAV.todayDay=s.day;
   DAYNAV.viewKey=s.dateKey; DAYNAV.viewDay=s.day;
   if(DAYNAV.oldestKey==null) DAYNAV.oldestKey=s.dateKey;
