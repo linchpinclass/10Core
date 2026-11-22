@@ -356,8 +356,10 @@ function onState(s){
   var ww=document.getElementById('b-waitwrap'), W=document.getElementById('b-wait');
   if(s.waiting.length){ ww.hidden=false; W.innerHTML='';
     s.waiting.forEach(function(m){var d=document.createElement('div');d.className='row';
-      d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+(m.streak?m.streak+'일':'')+
-        (m.done?' ✔':'')+'</div>';W.appendChild(d);});
+      var wmk=(m.streak?m.streak+'일':'')+(m.done?' ✔':'');
+      if(m.photo){ var wids=String(m.photo).split(',').filter(Boolean);
+        wids.forEach(function(pid,pi){ wmk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(wids.length>1?(pi+1):'')+'</a>'; }); }
+      d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
   buildWrite();
 }
@@ -503,7 +505,8 @@ function kakaoReady(){ try{ if(window.Kakao){ if(!Kakao.isInitialized()) Kakao.i
 function kakaoShare(){
   if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
-  var img = ids.length ? ('https://drive.google.com/thumbnail?id='+ids[0]+'&sz=w800') : (APPURL+'ogimg.png');
+  // 카드용 이미지: 세로로 긴 노션 캡처도 카드가 뜨도록 상단을 카드비율(≈2:1)로 크롭
+  var img = ids.length ? ('https://lh3.googleusercontent.com/d/'+ids[0]+'=w1000-h520-c') : (APPURL+'ogimg.png');
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
   var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
   try{
