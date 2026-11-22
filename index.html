@@ -45,6 +45,10 @@ header{position:sticky; top:0; z-index:20; background:var(--bg);
 .daybadge{display:inline-flex;align-items:baseline;gap:7px;background:linear-gradient(135deg,var(--coral),var(--coral-d));
   color:#fff;padding:9px 15px;border-radius:14px;font-weight:800;box-shadow:var(--shadow)}
 .daybadge b{font-size:22px;letter-spacing:-.5px} .daybadge span{font-size:12px;opacity:.9}
+.daygroup{display:flex;align-items:center;gap:6px}
+.daynav{border:1.5px solid var(--line);background:var(--card);color:var(--ink);width:30px;height:30px;border-radius:9px;
+  font-size:17px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;display:grid;place-items:center;padding:0}
+.daynav:active{transform:scale(.94)} .daynav[disabled]{opacity:.35;pointer-events:none}
 .chall{font-weight:800;font-size:14px}
 .chall em{color:var(--sub);font-style:normal;font-weight:600;font-size:12px;display:block}
 .prog{margin-top:14px}
@@ -122,7 +126,11 @@ select{appearance:none;font-weight:700}
   <section id="view-board" hidden>
     <div class="card">
       <div class="dayline">
-        <div class="daybadge"><span>DAY</span><b id="b-day">—</b></div>
+        <div class="daygroup">
+          <button class="daynav" id="d-prev" onclick="dayNav(-1)" disabled>‹</button>
+          <div class="daybadge"><span>DAY</span><b id="b-day">—</b></div>
+          <button class="daynav" id="d-next" onclick="dayNav(1)" disabled>›</button>
+        </div>
         <div class="chall" style="text-align:right" id="b-title">—<em>오후 2시 마감</em></div>
       </div>
       <div class="prog">
@@ -141,11 +149,6 @@ select{appearance:none;font-weight:700}
         <button class="btn primary" onclick="shareBoard()">📤 명단 공유 / 복사</button>
       </div>
       <button class="btn ghost sm" style="margin-top:8px" onclick="load(true)">↻ 새로고침</button>
-      <button class="btn ghost sm" style="margin-top:8px" onclick="toggleHistory()">📅 이전 날짜 기록 보기</button>
-      <div id="b-history" hidden style="margin-top:12px">
-        <select id="b-histsel" onchange="loadHistory()"></select>
-        <div id="b-histlist" class="list" style="margin-top:10px"></div>
-      </div>
     </div>
     <div class="foot">첫 작성자가 명단을 카톡방에 올리고, 이후 각자 자기 칸을 채워 다시 올려요.<br>
       안 쓰면 다음날 오후 2시 마감 후 명단에서 내려가고, 7일 연속 작성 시 복귀!</div>
@@ -227,6 +230,12 @@ select{appearance:none;font-weight:700}
         <button class="btn ghost sm" style="width:auto;padding:11px 16px" onclick="addWaiting()">추가</button>
       </div>
       <div class="hint">명단 순서·이름 수정, 사람 빼기는 연결된 <b>구글 시트 [명단] 탭</b>에서 바로 하면 돼요.</div>
+    </div>
+    <div class="card">
+      <div class="sectl">④ 이전 날짜 기록 조회</div>
+      <div class="hint" style="margin-top:0">날짜를 고르면 그날 인증한 사람·사진(📷)을 볼 수 있어요. (명단 화면은 DAY 옆 ‹ ›로도 넘겨봐요)</div>
+      <select id="b-histsel" onchange="loadHistory()" style="margin-top:10px"></select>
+      <div id="b-histlist" class="list" style="margin-top:10px"></div>
     </div>
   </section>
 </div>
@@ -326,6 +335,7 @@ function go(v){
     document.getElementById('view-'+x).hidden=(x!==v);
     document.getElementById('t-'+x).classList.toggle('on',x===v);
   });
+  if(v==='admin' && !histLoaded){ histLoaded=true; fetchDays(); }
   window.scrollTo(0,0);
 }
 
@@ -340,6 +350,19 @@ function onState(s){
   STATE=s;
   document.getElementById('loading').hidden=true;
   document.getElementById('view-board').hidden=false;
+  DAYNAV.today=s.dateKey; DAYNAV.todayDay=s.day;
+  DAYNAV.viewKey=s.dateKey; DAYNAV.viewDay=s.day;
+  if(DAYNAV.oldestKey==null) DAYNAV.oldestKey=s.dateKey;
+  paintLive(s);
+  if(!DAYNAV.daysLoaded){ DAYNAV.daysLoaded=true;
+    fetch(API+'?action=days').then(function(r){return r.json();}).then(function(d){
+      var ds=d.days||[]; DAYNAV.oldestKey=ds.length?ds[ds.length-1].dateKey:s.dateKey; updateDayNav();
+    }).catch(function(){});
+  }
+  updateDayNav();
+  buildWrite();
+}
+function paintLive(s){
   document.getElementById('b-day').textContent=s.day;
   document.getElementById('b-title').innerHTML=esc(s.title)+'<em>오후 2시 마감</em>';
   var pct=s.totalCount? Math.round(s.doneCount/s.totalCount*100):0;
@@ -368,16 +391,53 @@ function onState(s){
         wids.forEach(function(pid,pi){ wmk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(wids.length>1?(pi+1):'')+'</a>'; }); }
       d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
-  buildWrite();
 }
 
-/* ===== 이전 날짜 기록 보기 ===== */
-var histLoaded=false;
-function toggleHistory(){
-  var box=document.getElementById('b-history');
-  box.hidden=!box.hidden;
-  if(!box.hidden && !histLoaded){ histLoaded=true; fetchDays(); }
+/* ===== 명단 날짜 이동 (DAY 옆 ‹ ›) ===== */
+var DAYNAV={oldestKey:null,daysLoaded:false,today:null,todayDay:null,viewKey:null,viewDay:null};
+function addDays(key,n){var p=String(key).split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+n);
+  var mm=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);return d.getFullYear()+'-'+mm+'-'+dd;}
+function updateDayNav(){
+  var prev=document.getElementById('d-prev'),next=document.getElementById('d-next');
+  if(!prev||!next) return;
+  next.disabled=(DAYNAV.viewKey===DAYNAV.today);
+  prev.disabled=!!(DAYNAV.oldestKey && DAYNAV.viewKey<=DAYNAV.oldestKey);
 }
+function dayNav(dir){
+  if(!STATE||!DAYNAV.today) return;
+  var cur=DAYNAV.viewKey, today=DAYNAV.today;
+  if(dir>0 && cur===today) return;
+  if(dir<0 && DAYNAV.oldestKey && cur<=DAYNAV.oldestKey) return;
+  var nk=addDays(cur,dir);
+  if(dir>0 && nk>today) nk=today;
+  if(nk===today){ DAYNAV.viewKey=today; DAYNAV.viewDay=DAYNAV.todayDay; paintLive(STATE); updateDayNav(); window.scrollTo(0,0); return; }
+  var L=document.getElementById('b-list');L.innerHTML='<div class="center"><div class="spin"></div></div>';
+  fetch(API+'?action=history&date='+encodeURIComponent(nk)).then(function(r){return r.json();}).then(function(h){
+    DAYNAV.viewKey=nk; DAYNAV.viewDay=h.day; paintHistory(h); updateDayNav(); window.scrollTo(0,0);
+  }).catch(function(){ L.innerHTML='<div class="center">불러오기 실패 😢</div>'; });
+}
+function paintHistory(h){
+  document.getElementById('b-day').textContent=h.day;
+  document.getElementById('b-title').innerHTML=esc((STATE&&STATE.title)||'텐코아')+'<em>📅 지난 기록 · 읽기전용</em>';
+  document.getElementById('b-fill').style.width='0%';
+  document.getElementById('b-cnt').textContent=h.count+'명 인증';
+  document.getElementById('b-pct').textContent=h.dateKey;
+  var L=document.getElementById('b-list');L.innerHTML='';
+  var recs=h.records||[];
+  if(!recs.length){ L.innerHTML='<div class="center">이 날은 인증 기록이 없어요</div>'; }
+  else recs.forEach(function(m,i){
+    var d=document.createElement('div');d.className='row';
+    var mk=esc(m.mark||'완');
+    if(m.photo){ var ids=String(m.photo).split(',').filter(Boolean);
+      ids.forEach(function(pid,pi){ mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>'; }); }
+    d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div><div class="mk on">'+mk+'</div>';
+    L.appendChild(d);
+  });
+  document.getElementById('b-waitwrap').hidden=true;
+}
+
+/* ===== 이전 기록 (관리자: 날짜별 조회) ===== */
+var histLoaded=false;
 function fetchDays(){
   var sel=document.getElementById('b-histsel');
   sel.innerHTML='<option value="">불러오는 중…</option>';
