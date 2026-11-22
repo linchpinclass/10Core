@@ -169,6 +169,11 @@ select{appearance:none;font-weight:700}
         <label class="btn ghost" style="margin-top:12px;cursor:pointer">📷 사진 선택 / 촬영 <em style="color:var(--sub);font-weight:600;font-size:11.5px">(여러 장 가능)</em>
           <input type="file" accept="image/*" id="w-photo" multiple onchange="onPhotoPick(event)" hidden></label>
         <div id="w-photoprev" hidden style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+        <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
+          <div class="t" style="font-weight:800;font-size:13px">🔗 노션 링크로 인증 <em style="color:var(--coral);font-weight:700;font-size:11px">캡처 없이 자동!</em></div>
+          <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:13.5px;font-family:inherit;margin-top:8px">
+          <div class="hint" style="margin-top:7px;line-height:1.55">노션에서 <b>··· → 공유 → 웹에 게시</b>된 링크만 돼요. 붙여넣고 <b>인증 완료</b>를 누르면 페이지가 <b>자동 캡처</b>돼 📸 (사진이랑 둘 중 하나만)</div>
+        </div>
       </div>
     </div>
 
@@ -411,10 +416,14 @@ function submit(){
   ITEMS.forEach(function(it,i){var el=document.getElementById('it'+i);r['i'+i]=el?el.value.trim():'';});
   setMe(id);
   var payload={memberId:id, mark:mark, routine:r};
+  var linkUrl=(MODE==='photo') ? (document.getElementById('w-link').value||'').trim() : '';
   var hasPhoto=(MODE==='photo' && photoDataUrls.length);
+  var hasLink=(!!linkUrl && !hasPhoto);
+  if(hasLink && !/^https?:\/\//i.test(linkUrl)){ toast('링크는 http로 시작하는 주소여야 해요'); return; }
   if(hasPhoto) payload.photos=photoDataUrls;
+  else if(hasLink) payload.link=linkUrl;
   var btn=document.getElementById('w-submit');btn.disabled=true;
-  btn.textContent=hasPhoto?('사진 '+photoDataUrls.length+'장 올리는 중…'):'저장 중…';
+  btn.textContent=hasPhoto?('사진 '+photoDataUrls.length+'장 올리는 중…'):(hasLink?'🔗 노션 캡처 중… (10초쯤)':'저장 중…');
   call('submit',payload).then(function(s){
     onState(s);btn.disabled=false;btn.textContent='✅ 인증 완료';
     var nm='';s.active.concat(s.waiting).forEach(function(x){if(x.id===id)nm=x.name;});
@@ -427,10 +436,15 @@ function submit(){
     document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=isApp;
-    var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=!sharedPhotos.length;
+    var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=!(sharedPhotos.length || (_me&&_me.photo));
     if(hasPhoto){ photoDataUrls=[]; renderPhotoPrev();
       var fi=document.getElementById('w-photo');if(fi)fi.value=''; }
-    toast(hasPhoto?'📸 사진 인증 완료! 🎉':'인증 완료! 🎉');
+    if(hasLink){
+      if(_me && _me.photo){ document.getElementById('w-link').value=''; toast('🔗 노션 캡처 인증 완료! 🎉'); }
+      else { toast('캡처 실패 😢 노션이 "웹에 게시"로 공개됐는지 확인해주세요'); }
+    } else {
+      toast(hasPhoto?'📸 사진 인증 완료! 🎉':'인증 완료! 🎉');
+    }
   }).catch(function(e){btn.disabled=false;btn.textContent='✅ 인증 완료';
     toast('저장 실패 — 다시 시도해주세요');});
 }
