@@ -141,6 +141,11 @@ select{appearance:none;font-weight:700}
         <button class="btn primary" onclick="shareBoard()">📤 명단 공유 / 복사</button>
       </div>
       <button class="btn ghost sm" style="margin-top:8px" onclick="load(true)">↻ 새로고침</button>
+      <button class="btn ghost sm" style="margin-top:8px" onclick="toggleHistory()">📅 이전 날짜 기록 보기</button>
+      <div id="b-history" hidden style="margin-top:12px">
+        <select id="b-histsel" onchange="loadHistory()"></select>
+        <div id="b-histlist" class="list" style="margin-top:10px"></div>
+      </div>
     </div>
     <div class="foot">첫 작성자가 명단을 카톡방에 올리고, 이후 각자 자기 칸을 채워 다시 올려요.<br>
       안 쓰면 다음날 오후 2시 마감 후 명단에서 내려가고, 7일 연속 작성 시 복귀!</div>
@@ -247,16 +252,18 @@ function call(action, data){
 var STATE=null, EMOJIS=['완','완료','✅','🔥','💪','🙏','❤️','⭐','👍','✍️'];
 var ITEMS=[
  ['1. 오하운','오늘 하루 운동'],
- ['2. 박독 30분↑','인상깊은 구절·느낀 점'],
+ ['2. 빡독 30분↑','인상깊은 구절·느낀 점'],
  ['3. BIZ INSIGHT','영상·강의 듣고 느낀 점'],
  ['4. 시스템 접속','커뮤니티/미팅 참석 (없는 날 공란)'],
- ['5. 린깡이방 인증','아이템 활용 후기'],
+ ['5. 린짱이방 인증','아이템 활용 후기'],
  ['6. 1차미팅·신뢰쌓기','미팅 후 특징·계획'],
  ['7. STP','사업 설명 후 반응·계획'],
  ['8. F/u · F/th','전달한 TOOL·비즈 활동'],
  ['9. BIZ CONSULTING','스폰서·파트너 통화 느낀 점'],
- ['10. 내일 TO DO','내일 할 일 3가지 이상'],
- ['🙏 감사일기','오늘 감사한 일 3가지']
+ ['10. 내일 To Do List','내일 할 일 3가지 이상'],
+ ['🙏 감사일기 ①','오늘 감사한 일'],
+ ['🙏 감사일기 ②','오늘 감사한 일'],
+ ['🙏 감사일기 ③','오늘 감사한 일']
 ];
 var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
@@ -362,6 +369,47 @@ function onState(s){
       d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
   buildWrite();
+}
+
+/* ===== 이전 날짜 기록 보기 ===== */
+var histLoaded=false;
+function toggleHistory(){
+  var box=document.getElementById('b-history');
+  box.hidden=!box.hidden;
+  if(!box.hidden && !histLoaded){ histLoaded=true; fetchDays(); }
+}
+function fetchDays(){
+  var sel=document.getElementById('b-histsel');
+  sel.innerHTML='<option value="">불러오는 중…</option>';
+  fetch(API+'?action=days').then(function(r){return r.json();}).then(function(d){
+    var days=d.days||[];
+    sel.innerHTML='<option value="">— 날짜 선택 —</option>';
+    days.forEach(function(x){
+      var o=document.createElement('option');o.value=x.dateKey;
+      o.textContent='Day '+x.day+' · '+x.dateKey+' ('+x.count+'명)';
+      sel.appendChild(o);
+    });
+    if(!days.length){ sel.innerHTML='<option value="">아직 기록이 없어요</option>';
+      document.getElementById('b-histlist').innerHTML=''; }
+  }).catch(function(){ sel.innerHTML='<option value="">불러오기 실패</option>'; toast('기록 목록 실패 — 다시'); });
+}
+function loadHistory(){
+  var dk=document.getElementById('b-histsel').value;
+  var L=document.getElementById('b-histlist');
+  if(!dk){ L.innerHTML=''; return; }
+  L.innerHTML='<div class="center"><div class="spin"></div></div>';
+  fetch(API+'?action=history&date='+encodeURIComponent(dk)).then(function(r){return r.json();}).then(function(h){
+    var recs=h.records||[]; L.innerHTML='';
+    if(!recs.length){ L.innerHTML='<div class="center">이 날은 기록이 없어요</div>'; return; }
+    recs.forEach(function(m,i){
+      var d=document.createElement('div');d.className='row';
+      var mk=esc(m.mark||'완');
+      if(m.photo){ var ids=String(m.photo).split(',').filter(Boolean);
+        ids.forEach(function(pid,pi){ mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>'; }); }
+      d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div><div class="mk on">'+mk+'</div>';
+      L.appendChild(d);
+    });
+  }).catch(function(){ L.innerHTML='<div class="center">불러오기 실패 😢</div>'; });
 }
 
 function myId(){try{return localStorage.getItem('tenkoa_me')||'';}catch(e){return '';}}
