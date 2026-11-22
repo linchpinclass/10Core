@@ -205,12 +205,16 @@ select{appearance:none;font-weight:700}
   </section>
 
   <section id="view-admin" hidden>
-    <div class="card">
-      <div class="sectl">관리자 PIN</div>
-      <input class="fld pin" id="a-pin" type="password" inputmode="numeric" maxlength="8" placeholder="••••"
+    <div id="a-gate" class="card">
+      <div class="sectl">🔒 관리자 모드</div>
+      <input class="fld pin" id="a-gatepin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN 입력"
+        onkeydown="if(event.key==='Enter')unlockAdmin()"
         style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:12px">
-      <div class="hint">* 미작성 태그 생성은 PIN 없이도 돼요. 마감 반영만 PIN 필요.</div>
+      <button class="btn primary" style="margin-top:10px" onclick="unlockAdmin()">🔓 열기</button>
+      <div class="hint">관리자 PIN을 입력하면 메뉴가 열려요.</div>
     </div>
+    <div id="a-content" hidden>
+    <input type="hidden" id="a-pin">
     <div class="card">
       <div class="sectl">① 미작성자 태그 (1:50쯤)</div>
       <button class="btn ghost" onclick="genReminder()">🔔 안 쓴 사람 태그 문구 만들기</button>
@@ -240,6 +244,19 @@ select{appearance:none;font-weight:700}
       <div class="hint" style="margin-top:0">날짜를 고르면 그날 인증한 사람·사진(📷)을 볼 수 있어요. (명단 화면은 DAY 옆 ‹ ›로도 넘겨봐요)</div>
       <select id="b-histsel" onchange="loadHistory()" style="margin-top:10px"></select>
       <div id="b-histlist" class="list" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="sectl">⑤ 장기부재 표시 (여행·출장·입원 등)</div>
+      <div class="hint" style="margin-top:0">장기간 텐코아 못 쓰는 분은 완료칸에 이모지를 넣어두면, 마감 때 명단에서 <b>안 내려가요</b>. 복귀하면 '해제'로 빼세요.</div>
+      <select id="aw-name" style="margin-top:10px"></select>
+      <div class="emojis" id="aw-emojis" style="margin-top:8px"></div>
+      <input id="aw-emoji" maxlength="8" placeholder="표시할 이모지 (위에서 선택)"
+        style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;margin-top:8px">
+      <div class="btnrow">
+        <button class="btn primary sm" onclick="setAway()">표시 설정</button>
+        <button class="btn ghost sm" onclick="clearAway()">해제(빼기)</button>
+      </div>
+    </div>
     </div>
   </section>
 </div>
@@ -344,8 +361,69 @@ function showView(v){
 function go(v){
   CURVIEW=v;
   showView(v);
-  if(v==='admin' && !histLoaded){ histLoaded=true; fetchDays(); }
+  if(v==='admin') enterAdmin();
   window.scrollTo(0,0);
+}
+
+/* ===== 관리자 PIN 잠금 ===== */
+var adminUnlocked=false;
+function enterAdmin(){
+  var g=document.getElementById('a-gate'), c=document.getElementById('a-content');
+  if(adminUnlocked){
+    if(g)g.hidden=true; if(c)c.hidden=false;
+    if(!histLoaded){ histLoaded=true; fetchDays(); }
+    buildAdminAway();
+  } else {
+    if(g)g.hidden=false; if(c)c.hidden=true;
+    var gp=document.getElementById('a-gatepin'); if(gp){ gp.value=''; try{gp.focus();}catch(e){} }
+  }
+}
+function unlockAdmin(){
+  var gp=document.getElementById('a-gatepin'); var pin=((gp&&gp.value)||'').trim();
+  if(pin!=='5884'){ toast('PIN이 맞지 않아요'); return; }
+  adminUnlocked=true;
+  var ap=document.getElementById('a-pin'); if(ap) ap.value=pin;   // 백엔드 호출용(마감·대기추가·장기부재 공용)
+  enterAdmin();
+}
+
+/* ===== 관리자: 장기부재 표시 ===== */
+var AWAY_EMOJIS=[['✈️','여행'],['🧳','출장'],['🏥','입원'],['🤰','임신'],['👶','출산'],['🤒','아픔'],['🏖️','휴가'],['📵','잠시']];
+function buildAdminAway(){
+  if(!STATE) return;
+  var sel=document.getElementById('aw-name'); if(!sel) return;
+  var cur=sel.value;
+  var all=(STATE.active||[]).concat(STATE.waiting||[]);
+  sel.innerHTML='<option value="">— 이름 선택 —</option>';
+  all.forEach(function(m){ var o=document.createElement('option'); o.value=m.id;
+    o.textContent=m.name+(m.away?(' '+m.away):''); sel.appendChild(o); });
+  if(cur) sel.value=cur;
+  sel.onchange=function(){ var id=sel.value, m=null; all.forEach(function(x){if(x.id===id)m=x;});
+    document.getElementById('aw-emoji').value=(m&&m.away)||''; };
+  var E=document.getElementById('aw-emojis');
+  if(E && !E.childNodes.length){
+    AWAY_EMOJIS.forEach(function(p){ var b=document.createElement('button'); b.type='button'; b.textContent=p[0]; b.title=p[1];
+      b.onclick=function(){ document.getElementById('aw-emoji').value=p[0];
+        [].forEach.call(E.children,function(c){c.classList.toggle('on',c===b);}); };
+      E.appendChild(b); });
+  }
+}
+function setAway(){
+  var pin=(document.getElementById('a-pin').value||''), id=document.getElementById('aw-name').value;
+  var emoji=(document.getElementById('aw-emoji').value||'').trim();
+  if(!id){ toast('이름을 선택하세요'); return; }
+  if(!emoji){ toast('이모지를 선택하세요'); return; }
+  call('setAway',{pin:pin, memberId:id, away:emoji}).then(function(r){
+    if(!r.ok){ toast(r.msg||'실패'); return; }
+    onState(r.state); buildAdminAway(); toast('장기부재 표시 설정됨 '+emoji);
+  }).catch(function(){ toast('오류 — 다시 시도'); });
+}
+function clearAway(){
+  var pin=(document.getElementById('a-pin').value||''), id=document.getElementById('aw-name').value;
+  if(!id){ toast('이름을 선택하세요'); return; }
+  call('setAway',{pin:pin, memberId:id, away:''}).then(function(r){
+    if(!r.ok){ toast(r.msg||'실패'); return; }
+    onState(r.state); document.getElementById('aw-emoji').value=''; buildAdminAway(); toast('장기부재 해제됨 ✅');
+  }).catch(function(){ toast('오류 — 다시 시도'); });
 }
 
 function load(manual){
@@ -381,22 +459,23 @@ function paintLive(s){
   var L=document.getElementById('b-list');L.innerHTML='';
   s.active.forEach(function(m,i){
     var d=document.createElement('div');d.className='row'+(m.id===myId()?' me':'');
-    var mk=m.done?esc(m.mark):'·';
-    if(m.photo){
+    var isAway=!!m.away;
+    var mk=isAway?esc(m.away):(m.done?esc(m.mark):'·');
+    if(!isAway && m.photo){
       var ids=String(m.photo).split(',').filter(Boolean);
       ids.forEach(function(pid,pi){
         mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>';
       });
     }
     d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div>'+
-      '<div class="mk '+(m.done?'on':'off')+'">'+mk+'</div>';
+      '<div class="mk '+(isAway||m.done?'on':'off')+'">'+mk+'</div>';
     L.appendChild(d);
   });
   var ww=document.getElementById('b-waitwrap'), W=document.getElementById('b-wait');
   if(s.waiting.length){ ww.hidden=false; W.innerHTML='';
     s.waiting.forEach(function(m){var d=document.createElement('div');d.className='row';
-      var wmk=(m.streak?m.streak+'일':'')+(m.done?' ✔':'');
-      if(m.photo){ var wids=String(m.photo).split(',').filter(Boolean);
+      var wmk=m.away ? esc(m.away) : ((m.streak?m.streak+'일':'')+(m.done?' ✔':''));
+      if(!m.away && m.photo){ var wids=String(m.photo).split(',').filter(Boolean);
         wids.forEach(function(pid,pi){ wmk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(wids.length>1?(pi+1):'')+'</a>'; }); }
       d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
