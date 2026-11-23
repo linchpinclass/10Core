@@ -197,9 +197,9 @@ select{appearance:none;font-weight:700}
         <div id="w-photoprev" hidden style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
         <div style="margin-top:16px;border-top:1px dashed var(--line);padding-top:14px">
           <div class="t" style="font-weight:800;font-size:13px">🔗 노션 링크로 인증 <em style="color:var(--coral);font-weight:700;font-size:11px">캡처 없이 자동!</em></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" autocomplete="off" autocapitalize="off" spellcheck="false" onclick="this.focus()" style="flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:13.5px;font-family:inherit">
-            <button type="button" class="btn ghost sm" style="width:auto;padding:11px 14px;margin:0;white-space:nowrap" onclick="pasteLink()">📋 붙여넣기</button>
+          <div style="margin-top:8px">
+            <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:13.5px;font-family:inherit">
+            <button type="button" class="btn sm" style="width:100%;margin-top:8px;background:#FEE500;color:#191600;font-weight:800" onclick="pasteLink()">📋 복사한 링크 붙여넣기 (여기 눌러요)</button>
           </div>
           <div class="hint" style="margin-top:7px;line-height:1.55">노션에서 <b>··· → 공유 → 웹에 게시</b>된 링크만 돼요. 붙여넣고 <b>인증 완료</b>를 누르면 페이지가 <b>자동 캡처</b>돼 📸 (사진이랑 둘 중 하나만)</div>
         </div>
