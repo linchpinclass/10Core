@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <title>린치핀 텐코아</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="dns-prefetch" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta property="og:type" content="website">
 <meta property="og:title" content="린치핀 10 CORE · 텐코아">
 <meta property="og:description" content="매일 함께 텐코아 인증 · 365 성공챌린지 🔥">
@@ -474,6 +477,7 @@ function onErr(e){ document.getElementById('loading').innerHTML=
 
 function onState(s){
   STATE=s;
+  try{ localStorage.setItem('tenkoa_state', JSON.stringify(s)); }catch(e){}   // 다음 방문 즉시표시용 캐시
   document.getElementById('loading').hidden=true;
   showView(CURVIEW);   // 명단을 강제로 띄우지 않고 현재 탭만 유지 (인증하기 위에 명단 끼어드는 버그 수정)
   DAYNAV.today=s.dateKey; DAYNAV.todayDay=s.day;
@@ -1018,7 +1022,11 @@ function addMember(status){
 if(isInApp() || noShareSupport()){
   var warn=document.getElementById('inapp-warn'); if(warn) warn.hidden=false;
 }
-load();
+// 부팅: 캐시된 직전 명단을 즉시 그려서 '불러오는 중' 없이 바로 보이게 → 뒤에서 최신화
+(function boot(){
+  try{ var c=localStorage.getItem('tenkoa_state'); if(c){ var s=JSON.parse(c); if(s&&s.active){ onState(s); } } }catch(e){}
+  load();
+})();
 </script>
 </body>
 </html>
