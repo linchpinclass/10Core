@@ -325,9 +325,7 @@ var ITEMS=[
  ['8. F/u · F/th','전달한 TOOL·비즈 활동'],
  ['9. BIZ CONSULTING','스폰서·파트너 통화 느낀 점'],
  ['10. 내일 To Do List','내일 할 일 3가지 이상'],
- ['🙏 감사일기 ①','오늘 감사한 일'],
- ['🙏 감사일기 ②','오늘 감사한 일'],
- ['🙏 감사일기 ③','오늘 감사한 일']
+ ['🙏 감사일기','오늘 감사한 일 3개 이상']
 ];
 var pickMark='완';
 var MODE='app'; try{MODE=localStorage.getItem('tenkoa_mode')||'app';}catch(e){}
@@ -871,11 +869,9 @@ function drawTenkoaCard(name, day, title){
         var t=cur+ch;
         if(mx.measureText(t).width>maxW && cur){ lines.push(cur); cur=ch; } else cur=t; }
       if(cur!==''||!lines.length) lines.push(cur); return lines; }
-    var items=[], grat=[];
+    var items=[];
     ITEMS.forEach(function(it,i){ var el=document.getElementById('it'+i); var v=el?el.value.trim():''; if(!v) return;
-      if(it[0].indexOf('감사일기')>=0) grat.push(v); else items.push([it[0],v]); });
-    // 감사일기는 '감사일기' 한 제목 + 1./2./3. 번호 줄로 합쳐서 표시
-    if(grat.length) items.push(['🙏 감사일기', grat.map(function(v,gi){ return (gi+1)+'. '+v; }).join('\n')]);
+      items.push([it[0],v]); });
     var headerH=210, topPad=44, footerH=96;
     var availH=W-headerH-topPad-footerH;   // 1080 정사각 기준 본문 가용 높이
     function layout(sc){
