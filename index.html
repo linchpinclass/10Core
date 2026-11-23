@@ -161,7 +161,16 @@ select{appearance:none;font-weight:700}
     </div>
     <div class="card">
       <div class="sectl">📚 자료실</div>
-      <a class="btn ghost" href="https://teamlinchpin.notion.site/teamlinchpin/0248b9a29d3e430c9d7a1a501c9fcc52" target="_blank" rel="noopener" style="text-decoration:none;text-align:center">🏃‍♀️ 린치핀 텐코아 매뉴얼 🏃‍♂️</a>
+      <button class="btn ghost" onclick="toggleGuide()">📝 텐코아 앱웹 인증 방법</button>
+      <div id="b-guide" hidden style="margin-top:10px">
+        <div class="hint" style="margin:2px 0 6px"><b>① 앱에서 바로 작성</b></div>
+        <video src="https://linchpinclass.github.io/10Core/v_app.mp4" controls playsinline preload="none" style="width:100%;border-radius:11px;border:1px solid var(--line);margin-bottom:14px;background:#000"></video>
+        <div class="hint" style="margin:2px 0 6px"><b>② 쓰던 노트·사진 첨부</b></div>
+        <video src="https://linchpinclass.github.io/10Core/v_photo.mp4" controls playsinline preload="none" style="width:100%;border-radius:11px;border:1px solid var(--line);margin-bottom:14px;background:#000"></video>
+        <div class="hint" style="margin:2px 0 6px"><b>③ 노션 링크로 인증</b></div>
+        <video src="https://linchpinclass.github.io/10Core/v_notion.mp4" controls playsinline preload="none" style="width:100%;border-radius:11px;border:1px solid var(--line);background:#000"></video>
+      </div>
+      <a class="btn ghost" href="https://teamlinchpin.notion.site/teamlinchpin/0248b9a29d3e430c9d7a1a501c9fcc52" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;margin-top:8px">🏃‍♀️ 린치핀 텐코아 매뉴얼 🏃‍♂️</a>
       <button class="btn ghost" style="margin-top:8px" onclick="toggleChannels()">📺 비즈 인사이트 추천 채널 모음</button>
       <div id="b-channels" hidden style="margin-top:10px"></div>
     </div>
@@ -635,6 +644,7 @@ var CHANNELS=[
  ['오소희 다야몬 TV','https://www.youtube.com/@ohsohee_FCA',''],
  ['암웨이 오디오','https://www.youtube.com/@amwayaudio8019/videos','']
 ];
+function toggleGuide(){ var b=document.getElementById('b-guide'); if(b) b.hidden=!b.hidden; }
 var channelsBuilt=false;
 function toggleChannels(){
   var box=document.getElementById('b-channels'); if(!box) return;
