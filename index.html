@@ -824,7 +824,7 @@ function shareMineBtn(){ if(sharedPhotos.length) sharePhotos(); else shareMy(); 
 function sharePhotos(){
   if(!sharedPhotos.length){ toast('공유할 사진이 없어요'); return; }
   try{
-    var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'텐코아_'+(i+1)+'.jpg');});
+    var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'10core_'+(i+1)+'.jpg');});
     if(navigator.canShare && navigator.canShare({files:files})){
       navigator.share({files:files}).catch(function(err){ if(err&&err.name!=='AbortError') toast('사진 공유 취소/실패 — 명단의 📷로도 볼 수 있어요'); });
       return;
@@ -844,7 +844,7 @@ function cardImgSrc(fileId){
 // uploadImage는 카카오가 외부URL을 가져오는 게 아니라 우리가 바이트를 직접 올리므로 가장 확실함
 // 이미지 blob을 카카오 서버에 직접 업로드 → k.kakaocdn https URL 반환
 function uploadKakaoBlob(blob){
-  var file=new File([blob],'tenkoa.jpg',{type:(blob&&blob.type)||'image/jpeg'});
+  var file=new File([blob],'10core.jpg',{type:(blob&&blob.type)||'image/jpeg'});
   return Kakao.Share.uploadImage({ file:[file] })
     .then(function(r){ return ((r&&r.infos&&r.infos.original&&r.infos.original.url)||'').replace(/^http:/,'https:'); });
 }
@@ -962,7 +962,7 @@ function shareBoth(){
 function doShareBoth(){
   if(sharedPhotos.length){
     try{
-      var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'텐코아_'+(i+1)+'.jpg');});
+      var files=sharedPhotos.map(function(u,i){return dataUrlToFile(u,'10core_'+(i+1)+'.jpg');});
       // ① 사진 + 명단 글을 한 번에
       if(navigator.canShare && navigator.canShare({files:files, text:boardText()})){
         navigator.share({files:files, text:boardText()})
