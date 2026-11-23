@@ -150,6 +150,12 @@ select{appearance:none;font-weight:700}
       </div>
       <button class="btn ghost sm" style="margin-top:8px" onclick="load(true)">↻ 새로고침</button>
     </div>
+    <div class="card">
+      <div class="sectl">📚 자료실</div>
+      <a class="btn ghost" href="https://teamlinchpin.notion.site/teamlinchpin/0248b9a29d3e430c9d7a1a501c9fcc52" target="_blank" rel="noopener" style="text-decoration:none">🏃‍♀️ 린치핀 텐코아 매뉴얼 🏃‍♂️</a>
+      <button class="btn ghost" style="margin-top:8px" onclick="toggleChannels()">📺 비즈 인사이트 추천 채널 모음</button>
+      <div id="b-channels" hidden style="margin-top:10px"></div>
+    </div>
     <div class="foot">첫 작성자가 명단을 카톡방에 올리고, 이후 각자 자기 칸을 채워 다시 올려요.<br>
       안 쓰면 다음날 오후 2시 마감 후 명단에서 내려가고, 7일 연속 작성 시 복귀!</div>
   </section>
@@ -598,6 +604,38 @@ function pasteLink(){
       else { toast('복사된 링크가 없어요 — 노션 링크를 먼저 복사해주세요'); }
     }).catch(function(){ toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); el.focus(); });
   } else { toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); el.focus(); }
+}
+
+/* ===== 비즈 인사이트 추천 채널 모음 ===== */
+var CHANNELS=[
+ ['린치핀 줌 녹화 모음','https://www.youtube.com/playlist?list=PLjxhS55eXqStZ7kRHypV149gSXXuyJ-7O',''],
+ ['린치핀 추천 음원 모음','https://www.youtube.com/playlist?list=PLjxhS55eXqSsLP8glL5rcbtkCB62A5GU9',''],
+ ['I do fca  [FCA 김일두리더님 그룹]','https://www.youtube.com/@IDOFCA/streams','동영상·라이브 둘 다 확인'],
+ ['Gemstone TV  [트리플 다야몬 김민기리더님 팀]','https://www.youtube.com/@teamgemstone/videos','동영상·라이브 둘 다 확인'],
+ ['방바라방 bangbarabang  [수석 다야몬 방중하L]','https://www.youtube.com/@amwaybang/videos',''],
+ ['JMTV 손재모TV  [수석 다야몬 손재모L]','https://www.youtube.com/@74xday/videos',''],
+ ['안다 모른다  [트리플 다야몬 김정훈L]','https://www.youtube.com/@안다모른다/videos',''],
+ ['better lives amway  [크라운 박철웅L]','https://www.youtube.com/@betterlivesamway78/videos',''],
+ ['건강하는장준기  [더블 다야몬 장준기L]','https://www.youtube.com/@amwayjjangjjang/videos',''],
+ ['Together Achieve','https://www.youtube.com/@togetherachieve6485/videos',''],
+ ['맨디의 키노트  Mandy’s keynote','https://www.youtube.com/@mandy.keynote/videos',''],
+ ['오소희 다야몬 TV','https://www.youtube.com/@ohsohee_FCA',''],
+ ['암웨이 오디오','https://www.youtube.com/@amwayaudio8019/videos','']
+];
+var channelsBuilt=false;
+function toggleChannels(){
+  var box=document.getElementById('b-channels'); if(!box) return;
+  box.hidden=!box.hidden;
+  if(!box.hidden && !channelsBuilt){ channelsBuilt=true;
+    var html='';
+    CHANNELS.forEach(function(c,i){
+      html+='<a href="'+c[1]+'" target="_blank" rel="noopener" style="display:block;padding:10px 12px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;text-decoration:none;color:var(--ink);font-weight:700;font-size:13.5px;background:var(--card)">'+
+        '<span style="color:var(--coral)">'+(i+1)+'.</span> '+esc(c[0])+
+        (c[2]?'<span style="display:block;color:var(--sub);font-weight:600;font-size:11px;margin-top:2px">▶ '+esc(c[2])+'</span>':'')+
+        '</a>';
+    });
+    box.innerHTML=html;
+  }
 }
 
 function myId(){try{return localStorage.getItem('tenkoa_me')||'';}catch(e){return '';}}
