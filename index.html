@@ -210,7 +210,7 @@ select{appearance:none;font-weight:700}
             <input id="w-link" placeholder="공개된 노션 링크 붙여넣기" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" onfocus="this.removeAttribute('readonly')" style="flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:16px;font-family:inherit">
             <button type="button" class="btn ghost sm" style="width:auto;padding:11px 14px;margin:0;white-space:nowrap" onclick="pasteLink()">📋 붙여넣기</button>
           </div>
-          <div class="hint" style="margin-top:7px;line-height:1.55">노션에서 <b>··· → 공유 → 웹에 게시</b>된 링크만 돼요. 붙여넣고 <b>인증 완료</b>를 누르면 페이지가 <b>자동 캡처</b>돼요 📸 (사진이랑 둘 중 하나만)</div>
+          <div class="hint" style="margin-top:7px;line-height:1.55">노션에서 <b>··· → 공유 → 웹에 게시</b>된 링크만 돼요. 링크칸을 <b>꾹 눌러 "붙여넣기"</b>(또는 📋 버튼) 후 <b>인증 완료</b>를 누르면 페이지가 <b>자동 캡처</b>돼요 📸 (사진이랑 둘 중 하나만)</div>
         </div>
       </div>
     </div>
@@ -621,11 +621,15 @@ function pasteLink(){
   function fill(t){ t=(t||'').trim();
     if(t){ el.value=t; try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){} toast('링크 붙여넣었어요 ✅'); return true; }
     return false; }
-  // 모바일 폴백: 칸에 포커스+전체선택 → iOS·안드로이드 '붙여넣기' 말풍선이 바로 떠서 한 번 탭하면 들어감
-  function manual(){ el.focus(); try{el.setSelectionRange(0,(el.value||'').length);}catch(e){} try{el.select();}catch(e){}
-    toast('칸이 선택됐어요 — 뜨는 "붙여넣기"를 한 번 눌러주세요'); }
+  // 폴백: 칸에 포커스만 두고 안내. 입력칸 길게누르기 '붙여넣기'는 OS 기능이라 카톡 인앱에서도 됨
+  function manual(){ el.focus();
+    try{el.setSelectionRange((el.value||'').length,(el.value||'').length);}catch(e){}
+    toast(isInApp()
+      ? '카톡 앱 안이라 버튼 붙여넣기가 막혀요 — 링크칸을 꾹 누르면 뜨는 "붙여넣기"를 눌러주세요 🙂'
+      : '링크칸을 꾹 누르면 뜨는 "붙여넣기"를 눌러주세요 🙂'); }
   // 탭 즉시(유저 제스처 유지) 클립보드 읽기 — focus보다 먼저 호출해야 권한 유지됨
-  if(navigator.clipboard && navigator.clipboard.readText){
+  // 카톡·네이버 인앱브라우저는 clipboard API 자체가 막혀서 바로 폴백 안내
+  if(!isInApp() && navigator.clipboard && navigator.clipboard.readText){
     navigator.clipboard.readText().then(function(t){ if(!fill(t)) manual(); }).catch(manual);
   } else { manual(); }
 }
