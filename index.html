@@ -527,7 +527,8 @@ function paintLive(s){
   var ww=document.getElementById('b-waitwrap'), W=document.getElementById('b-wait');
   if(s.waiting.length){ ww.hidden=false; W.innerHTML='';
     s.waiting.forEach(function(m){var d=document.createElement('div');d.className='row';
-      var wmk=m.away ? esc(m.away) : ((m.streak?m.streak+'일':'')+(m.done?' ✔':''));
+      var wst=(m.streak||0)+(m.done?1:0);   // 오늘 썼으면 연속일수 +1 (마감 전 잠정)
+      var wmk=m.away ? esc(m.away) : ((wst?wst+'일':'')+(m.done?' ✔':''));
       if(!m.away && m.photo){ var wids=String(m.photo).split(',').filter(Boolean);
         wids.forEach(function(pid,pi){ wmk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(wids.length>1?(pi+1):'')+'</a>'; }); }
       d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
@@ -618,12 +619,15 @@ function pasteLink(){
   var el=document.getElementById('w-link'); if(!el) return;
   el.removeAttribute('readonly');
   function fill(t){ t=(t||'').trim();
-    if(t){ el.value=t; try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){} toast('링크 붙여넣었어요 ✅'); }
-    else { el.focus(); toast('복사된 링크가 없어요 — 노션 링크를 먼저 복사해주세요'); } }
+    if(t){ el.value=t; try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){} toast('링크 붙여넣었어요 ✅'); return true; }
+    return false; }
+  // 모바일 폴백: 칸에 포커스+전체선택 → iOS·안드로이드 '붙여넣기' 말풍선이 바로 떠서 한 번 탭하면 들어감
+  function manual(){ el.focus(); try{el.setSelectionRange(0,(el.value||'').length);}catch(e){} try{el.select();}catch(e){}
+    toast('칸이 선택됐어요 — 뜨는 "붙여넣기"를 한 번 눌러주세요'); }
   // 탭 즉시(유저 제스처 유지) 클립보드 읽기 — focus보다 먼저 호출해야 권한 유지됨
   if(navigator.clipboard && navigator.clipboard.readText){
-    navigator.clipboard.readText().then(fill).catch(function(){ el.focus(); toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); });
-  } else { el.focus(); toast('칸을 꾹 눌러 "붙여넣기"를 선택해주세요'); }
+    navigator.clipboard.readText().then(function(t){ if(!fill(t)) manual(); }).catch(manual);
+  } else { manual(); }
 }
 
 /* ===== 비즈 인사이트 추천 채널 모음 ===== */
@@ -787,7 +791,7 @@ function boardText(){
   var t='['+STATE.title+' Day '+STATE.day+']\n';
   STATE.active.forEach(function(m,i){ t+=(i+1)+'.'+m.name+':'+(m.done?m.mark:'')+'\n'; });
   t+='━━━━━━━━━━\n';
-  STATE.waiting.forEach(function(m){ t+=m.name+':'+(m.streak?m.streak+'일차':'')+'\n'; });
+  STATE.waiting.forEach(function(m){ var st=(m.streak||0)+(m.done?1:0); t+=m.name+':'+(m.done?st:'')+'\n'; });
   return t.trim();
 }
 function myTenkoaText(){
