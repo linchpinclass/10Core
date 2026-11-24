@@ -230,12 +230,7 @@ select{appearance:none;font-weight:700}
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
       <div id="w-cardprev" hidden style="margin-top:12px"></div>
       <button class="btn primary" id="sh-kakao" hidden style="margin-top:10px;background:#FEE500;color:#191600" onclick="kakaoShare()">💬 카톡으로 인증사진 공유 + 명단 현황 복사<br><span style="font-size:12px;font-weight:600;opacity:.75">(명단 붙여넣기는 직접)</span></button>
-      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">💬 버튼을 누르면 인증 카드가 카톡으로 가고 <b>명단 현황이 복사</b>돼요. 카톡방에 <b>붙여넣기</b>만 하면 끝! (사진은 명단의 📷로도 확인)</div>
-      <div class="btnrow">
-        <button class="btn ghost sm" id="sh-my" onclick="shareMineBtn()">📝 내 텐코아만</button>
-        <button class="btn ghost sm" onclick="shareBoard()">📋 명단만</button>
-      </div>
-      <div class="hint" style="text-align:center">모바일: 공유 → 카톡 선택 · PC: 복사 후 붙여넣기</div>
+      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px"><b>노란 버튼</b>을 누르면 인증 카드가 카톡으로 전송되고, <b>명단 현황은 복사</b>돼요. 카톡방에 <b>붙여넣기</b>까지 하면 끝! (사진은 명단의 📷로도 확인)</div>
     </div>
     <div class="foot">앱 작성 시 1~5번·9~10번은 되도록 채우기! (4번은 시스템 참석한 날만)</div>
   </section>
@@ -768,7 +763,6 @@ function submit(){
     sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
     var _me=null; s.active.concat(s.waiting).forEach(function(x){if(x.id===id)_me=x;});
     shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'', done:s.doneCount, total:s.totalCount, kakaoImg:'' };
-    document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
     document.getElementById('sh-mynote').hidden=false;
     var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=false;   // 메인 공유 버튼(항상 표시, 사진 없으면 기본 카드)
     var cardbox=document.getElementById('w-cardprev'); if(cardbox){ cardbox.hidden=!isApp; cardbox.innerHTML=''; }
