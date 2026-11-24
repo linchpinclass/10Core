@@ -229,9 +229,8 @@ select{appearance:none;font-weight:700}
     <div id="w-after" hidden>
       <div class="okbox">인증 완료! <b id="w-aftername"></b>님 명단에 반영됐어요👇</div>
       <div id="w-cardprev" hidden style="margin-top:12px"></div>
-      <button class="btn primary" id="sh-kakao" hidden style="margin-top:10px;background:#FEE500;color:#191600" onclick="kakaoShare()">💬 카톡으로 사진+명단 보내기</button>
-      <button class="btn primary" id="sh-both" style="margin-top:8px" onclick="shareBoth()">📤 내 텐코아 + 명단 함께 공유</button>
-      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">📸 <b>함께 공유</b>를 누르면 올린 사진이 카톡으로 바로 가요 (명단에선 📷로도 확인)</div>
+      <button class="btn primary" id="sh-kakao" hidden style="margin-top:10px;background:#FEE500;color:#191600" onclick="kakaoShare()">💬 카톡으로 인증사진 공유 + 명단 현황 복사<br><span style="font-size:12px;font-weight:600;opacity:.75">(명단 붙여넣기는 직접)</span></button>
+      <div id="sh-mynote" class="hint" hidden style="text-align:center;margin-top:10px">💬 버튼을 누르면 인증 카드가 카톡으로 가고 <b>명단 현황이 복사</b>돼요. 카톡방에 <b>붙여넣기</b>만 하면 끝! (사진은 명단의 📷로도 확인)</div>
       <div class="btnrow">
         <button class="btn ghost sm" id="sh-my" onclick="shareMineBtn()">📝 내 텐코아만</button>
         <button class="btn ghost sm" onclick="shareBoard()">📋 명단만</button>
@@ -769,17 +768,15 @@ function submit(){
     sharedPhotos = hasPhoto ? photoDataUrls.slice() : [];
     var _me=null; s.active.concat(s.waiting).forEach(function(x){if(x.id===id)_me=x;});
     shareMeta={ name:nm, day:s.day, title:s.title, photo:(_me&&_me.photo)||'', done:s.doneCount, total:s.totalCount, kakaoImg:'' };
-    document.getElementById('sh-both').textContent = isApp ? '📤 내 텐코아 + 명단 함께 공유' : '📤 사진 + 명단 함께 공유';
     document.getElementById('sh-my').textContent = isApp ? '📝 내 텐코아만' : '📷 사진만';
-    document.getElementById('sh-mynote').hidden=isApp;
-    var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=!(sharedPhotos.length || (_me&&_me.photo));
+    document.getElementById('sh-mynote').hidden=false;
+    var shk=document.getElementById('sh-kakao'); if(shk) shk.hidden=false;   // 메인 공유 버튼(항상 표시, 사진 없으면 기본 카드)
     var cardbox=document.getElementById('w-cardprev'); if(cardbox){ cardbox.hidden=!isApp; cardbox.innerHTML=''; }
     if(isApp && appCardUrl){
       sharedPhotos=[appCardUrl];
       if(cardbox){ cardbox.hidden=false;
         cardbox.innerHTML='<div class="hint" style="margin:2px 0 7px">📸 이 <b>사진</b>이 명단현황에 📷로 올라갔고, 아래 버튼으로 공유돼요</div>'+
           '<img src="'+appCardUrl+'" alt="텐코아 미리보기" style="width:100%;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow)">'; }
-      var mn2=document.getElementById('sh-mynote'); if(mn2){ mn2.hidden=false; mn2.innerHTML='📸 <b>함께 공유</b>·<b>카톡으로</b>를 누르면 위 <b>사진</b>이 그대로 전송돼요'; }
       prewarmKakaoCard(appCardUrl);
     } else {
       // 사진/노션 모드: 저장된 드라이브 사진으로 카카오 프리워밍
@@ -950,7 +947,9 @@ function prewarmKakaoCard(dataUrl){
   }catch(e){}
 }
 function kakaoShare(){
-  if(!kakaoReady()){ toast('카카오 공유 준비 중 — 잠시 후 다시 눌러주세요'); return; }
+  // 명단 현황은 버튼 누른 즉시 복사(이미지 업로드를 기다린 뒤엔 브라우저가 복사를 막을 수 있음)
+  copyText(boardText(),'명단 현황 복사됨 📋 카톡방에 붙여넣기 하세요');
+  if(!kakaoReady()){ toast('명단은 복사됐어요 📋 카카오 공유는 준비 중 — 잠시 후 다시 눌러주세요'); return; }
   var ids=String(shareMeta.photo||'').split(',').filter(Boolean);
   var title='['+(shareMeta.title||'텐코아')+' Day '+(shareMeta.day||'')+'] '+(shareMeta.name||'');
   var desc='Day '+(shareMeta.day||'')+' · 현재 '+(shareMeta.done||0)+'/'+(shareMeta.total||0)+' 완료 · 탭하면 전체 명단·사진 👉';
@@ -959,8 +958,7 @@ function kakaoShare(){
       Kakao.Share.sendDefault({ objectType:'feed',
         content:{ title:title, description:desc, imageUrl:imgUrl, link:{ mobileWebUrl:APPURL, webUrl:APPURL } },
         buttons:[{ title:'명단·앱 열기', link:{ mobileWebUrl:APPURL, webUrl:APPURL } }] });
-      try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(boardText()); }catch(e){}
-      toast('카톡 공유창 열었어요! 전체 명단도 복사됨(붙여넣기) 📋');
+      toast('카톡 공유창 열었어요! 명단 현황은 복사됐으니 카톡방에 붙여넣기 📋');
     }catch(e){ toast('카카오 공유 실패 — 다시 시도'); }
   }
   if(shareMeta.kakaoImg){ send(shareMeta.kakaoImg); return; }
