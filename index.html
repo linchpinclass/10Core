@@ -307,6 +307,11 @@ select{appearance:none;font-weight:700}
 
 <div id="toast"></div>
 
+<div id="imgviewer" hidden onclick="closeImg()" style="position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:120;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px">
+  <img id="imgviewer-img" alt="텐코아 인증 사진" style="max-width:100%;max-height:84vh;border-radius:12px;object-fit:contain;background:#111">
+  <div style="color:#fff;margin-top:14px;font-size:13px;opacity:.85">화면을 누르면 닫혀요 ✕</div>
+</div>
+
 <script>
 /* ===== Apps Script API ===== */
 var API='https://script.google.com/macros/s/AKfycbxOWrEEcothM3Ty1vaWXCLNcyZimZ92r8mxjzKJavoqrqP_CRSVVHSX66qxZFbQ_aaK7g/exec';
@@ -527,7 +532,7 @@ function paintLive(s){
     if(!isAway && m.photo){
       var ids=String(m.photo).split(',').filter(Boolean);
       ids.forEach(function(pid,pi){
-        mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>';
+        mk+=photoTag(pid, ids.length>1?(pi+1):'');
       });
     }
     d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div>'+
@@ -540,7 +545,7 @@ function paintLive(s){
       var wst=(m.streak||0)+(m.done?1:0);   // 오늘 썼으면 연속일수 +1 (마감 전 잠정)
       var wmk=m.away ? esc(m.away) : ((wst?wst+'일':'')+(m.done?' ✔':''));
       if(!m.away && m.photo){ var wids=String(m.photo).split(',').filter(Boolean);
-        wids.forEach(function(pid,pi){ wmk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(wids.length>1?(pi+1):'')+'</a>'; }); }
+        wids.forEach(function(pid,pi){ wmk+=photoTag(pid, wids.length>1?(pi+1):''); }); }
       d.innerHTML='<div class="nm">'+esc(m.name)+'</div><div class="mk">'+wmk+'</div>';W.appendChild(d);});
   } else ww.hidden=true;
 }
@@ -581,7 +586,7 @@ function paintHistory(h){
     var d=document.createElement('div');d.className='row';
     var mk=esc(m.mark||'완');
     if(m.photo){ var ids=String(m.photo).split(',').filter(Boolean);
-      ids.forEach(function(pid,pi){ mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>'; }); }
+      ids.forEach(function(pid,pi){ mk+=photoTag(pid, ids.length>1?(pi+1):''); }); }
     d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div><div class="mk on">'+mk+'</div>';
     L.appendChild(d);
   });
@@ -617,7 +622,7 @@ function loadHistory(){
       var d=document.createElement('div');d.className='row';
       var mk=esc(m.mark||'완');
       if(m.photo){ var ids=String(m.photo).split(',').filter(Boolean);
-        ids.forEach(function(pid,pi){ mk+=' <a href="https://drive.google.com/file/d/'+esc(pid)+'/view" target="_blank" rel="noopener" style="text-decoration:none">📷'+(ids.length>1?(pi+1):'')+'</a>'; }); }
+        ids.forEach(function(pid,pi){ mk+=photoTag(pid, ids.length>1?(pi+1):''); }); }
       d.innerHTML='<div class="num">'+(i+1)+'</div><div class="nm">'+esc(m.name)+'</div><div class="mk on">'+mk+'</div>';
       L.appendChild(d);
     });
@@ -663,6 +668,17 @@ var CHANNELS=[
 function toggleGuide(){ var b=document.getElementById('b-guide'); if(b) b.hidden=!b.hidden; }
 function toggleHistGuide(){ var b=document.getElementById('b-histguide'); if(b) b.hidden=!b.hidden; }
 function togglePhotoGuide(){ var b=document.getElementById('b-photoguide'); if(b) b.hidden=!b.hidden; }
+/* ===== 📷 인증사진 인앱 뷰어 (구글 로그인 없이 바로 보기) ===== */
+// 드라이브 /view 페이지는 '본인 인증'을 요구할 때가 있어서, 로그인 필요없는 이미지로 앱 안에서 바로 띄움
+function photoTag(pid, label){ return ' <a href="#" onclick="return openImg(\''+esc(pid)+'\')" style="text-decoration:none;cursor:pointer">📷'+(label||'')+'</a>'; }
+function openImg(pid){
+  var ov=document.getElementById('imgviewer'), im=document.getElementById('imgviewer-img');
+  if(!ov||!im) return false;
+  im.src='https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/thumbnail?id='+pid+'&sz=w1600')+'&w=1600';
+  im.onerror=function(){ this.onerror=null; this.src='https://drive.google.com/thumbnail?id='+pid+'&sz=w1600'; };
+  ov.hidden=false; return false;
+}
+function closeImg(){ var ov=document.getElementById('imgviewer'); if(ov) ov.hidden=true; var im=document.getElementById('imgviewer-img'); if(im) im.src=''; }
 var channelsBuilt=false;
 function toggleChannels(){
   var box=document.getElementById('b-channels'); if(!box) return;
