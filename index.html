@@ -170,6 +170,16 @@ select{appearance:none;font-weight:700}
         <div class="hint" style="margin:2px 0 6px"><b>③ 노션 링크로 인증</b></div>
         <video src="https://linchpinclass.github.io/10Core/v_notion.mp4" controls playsinline preload="none" style="width:100%;border-radius:11px;border:1px solid var(--line);background:#000"></video>
       </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="toggleHistGuide()">📅 이전 날짜 기록 보는 방법</button>
+      <div id="b-histguide" hidden style="margin-top:10px">
+        <div class="hint" style="margin:2px 0 8px;line-height:1.6">명단 화면 위쪽, <b>DAY 숫자 양옆의 ‹ › 화살표</b>를 누르면 지난 날짜의 인증 기록을 넘겨볼 수 있어요. 오늘로 돌아오려면 오른쪽 <b>›</b> 를 누르면 돼요 🙂</div>
+        <img src="https://linchpinclass.github.io/10Core/g_history.jpg" alt="이전 날짜 기록 보기 — DAY 옆 화살표" loading="lazy" style="width:100%;border-radius:11px;border:1px solid var(--line)">
+      </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="togglePhotoGuide()">📷 다른 리더님 텐코아 사진 확인</button>
+      <div id="b-photoguide" hidden style="margin-top:10px">
+        <div class="hint" style="margin:2px 0 8px;line-height:1.6">명단에서 이름 오른쪽에 <b>📷 아이콘</b>이 있는 분은 사진·노션으로 인증한 거예요. 그 <b>📷</b>를 누르면 올린 텐코아 인증을 바로 볼 수 있어요 🙂</div>
+        <img src="https://linchpinclass.github.io/10Core/g_photo.jpg" alt="다른 리더 텐코아 사진 확인 — 📷 아이콘" loading="lazy" style="width:100%;border-radius:11px;border:1px solid var(--line)">
+      </div>
       <a class="btn ghost" href="https://teamlinchpin.notion.site/teamlinchpin/0248b9a29d3e430c9d7a1a501c9fcc52" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;margin-top:8px">🏃‍♀️ 린치핀 텐코아 매뉴얼 🏃‍♂️</a>
       <button class="btn ghost" style="margin-top:8px" onclick="toggleChannels()">📺 비즈 인사이트 추천 채널 모음</button>
       <div id="b-channels" hidden style="margin-top:10px"></div>
@@ -651,6 +661,8 @@ var CHANNELS=[
  ['암웨이 오디오','https://www.youtube.com/@amwayaudio8019/videos','']
 ];
 function toggleGuide(){ var b=document.getElementById('b-guide'); if(b) b.hidden=!b.hidden; }
+function toggleHistGuide(){ var b=document.getElementById('b-histguide'); if(b) b.hidden=!b.hidden; }
+function togglePhotoGuide(){ var b=document.getElementById('b-photoguide'); if(b) b.hidden=!b.hidden; }
 var channelsBuilt=false;
 function toggleChannels(){
   var box=document.getElementById('b-channels'); if(!box) return;
