@@ -307,7 +307,7 @@ select{appearance:none;font-weight:700}
 
 <div id="toast"></div>
 
-<div id="imgviewer" hidden onclick="closeImg()" style="position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:120;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px">
+<div id="imgviewer" onclick="closeImg()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:120;align-items:center;justify-content:center;flex-direction:column;padding:16px">
   <img id="imgviewer-img" alt="텐코아 인증 사진" style="max-width:100%;max-height:84vh;border-radius:12px;object-fit:contain;background:#111">
   <div style="color:#fff;margin-top:14px;font-size:13px;opacity:.85">화면을 누르면 닫혀요 ✕</div>
 </div>
@@ -676,9 +676,9 @@ function openImg(pid){
   if(!ov||!im) return false;
   im.src='https://images.weserv.nl/?url='+encodeURIComponent('drive.google.com/thumbnail?id='+pid+'&sz=w1600')+'&w=1600';
   im.onerror=function(){ this.onerror=null; this.src='https://drive.google.com/thumbnail?id='+pid+'&sz=w1600'; };
-  ov.hidden=false; return false;
+  ov.style.display='flex'; return false;
 }
-function closeImg(){ var ov=document.getElementById('imgviewer'); if(ov) ov.hidden=true; var im=document.getElementById('imgviewer-img'); if(im) im.src=''; }
+function closeImg(){ var ov=document.getElementById('imgviewer'); if(ov) ov.style.display='none'; var im=document.getElementById('imgviewer-img'); if(im){ im.onerror=null; im.removeAttribute('src'); } }
 var channelsBuilt=false;
 function toggleChannels(){
   var box=document.getElementById('b-channels'); if(!box) return;
