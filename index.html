@@ -966,7 +966,12 @@ function drawTenkoaCard(name, day, title){
     var g=ctx.createLinearGradient(0,0,W,headerH); g.addColorStop(0,'#ff5a3c'); g.addColorStop(1,'#ffb11b');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,headerH);
     ctx.textBaseline='alphabetic'; ctx.fillStyle='#ffffff';
-    ctx.font='700 33px '+FS; ctx.fillText('🔥 '+(title||'텐코아')+'  ·  Day '+day, pad, 84);
+    // Day 옆에 그 Day의 날짜(2026.11.25 형식) 표시 — 길면 글자 줄여서 한 줄 유지
+    var dateTxt=(STATE&&STATE.dateKey)?String(STATE.dateKey).replace(/-/g,'.'):'';
+    var headTxt='🔥 '+(title||'텐코아')+'  ·  Day '+day+(dateTxt?'  ·  '+dateTxt:'');
+    var hfs=33; ctx.font='700 '+hfs+'px '+FS;
+    while(hfs>22 && ctx.measureText(headTxt).width>W-pad*2){ hfs--; ctx.font='700 '+hfs+'px '+FS; }
+    ctx.fillText(headTxt, pad, 84);
     ctx.font='800 64px '+FS; ctx.fillText(name, pad, 162);
     var y=headerH+topPad+Math.round(extra/2)+Math.round(40*Lo.sc);
     if(!Lo.blocks.length){ ctx.fillStyle='#8a7a6a'; ctx.font=Lo.fVal; ctx.fillText('오늘 텐코아 인증 완료 ✅', pad, y); }
