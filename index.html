@@ -196,6 +196,9 @@ select{appearance:none;font-weight:700}
     <div class="card">
       <label class="fld"><div class="t">내 이름 선택 <i>*</i></div>
         <select id="w-name"></select></label>
+      <label class="fld" id="w-newwrap" style="display:none;margin-top:14px"><div class="t">대기자에 추가할 이름 <i>*</i></div>
+        <input id="w-newname" placeholder="내 이름을 적어주세요" maxlength="12" autocomplete="off" style="width:100%;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;padding:11px 12px;font-size:16px;font-family:inherit">
+        <div class="hint" style="margin-top:6px;line-height:1.55">새로 합류하는 분은 이름을 적고 아래에서 인증하면 <b>대기자 명단에 추가</b>돼요. (7일 연속 작성 시 본명단 합류)</div></label>
       <div class="t" style="font-weight:800;font-size:13.5px;margin-top:16px">인증 표시 <i style="color:var(--coral)">*</i>
         <em style="color:var(--sub);font-weight:600;font-size:11.5px">&nbsp;이름 옆에 붙어요</em></div>
       <div class="emojis" id="w-emojis"></div>
@@ -745,8 +748,13 @@ function buildWrite(){
   var all=STATE.active.concat(STATE.waiting);
   all.forEach(function(m){var o=document.createElement('option');o.value=m.id;
     o.textContent=m.name+(m.done?' ✔ (작성됨)':'');sel.appendChild(o);});
+  var on=document.createElement('option'); on.value=NEWME; on.textContent='➕ 내 이름 추가 (새로 합류)'; sel.appendChild(on);
   if(cur) sel.value=cur;
-  sel.onchange=function(){ if(sel.value) setMe(sel.value); prefill(); };
+  function syncNew(){ var w=document.getElementById('w-newwrap'); if(w) w.style.display=(sel.value===NEWME?'block':'none'); }
+  syncNew();
+  sel.onchange=function(){ syncNew();
+    if(sel.value===NEWME){ var ni=document.getElementById('w-newname'); if(ni) ni.focus(); return; }
+    if(sel.value) setMe(sel.value); prefill(); };
   if(!document.getElementById('w-emojis').childNodes.length){
     var E=document.getElementById('w-emojis');
     EMOJIS.forEach(function(e){var b=document.createElement('button');b.textContent=e;
@@ -781,9 +789,31 @@ function prefill(){
   }catch(e){}}
 }
 
+var NEWME='__new__';   // 이름 선택 맨 아래 '내 이름 추가' 옵션 값
+// 새로 합류: 적은 이름을 대기자 명단에 먼저 추가한 뒤, 그 이름으로 인증을 이어서 진행
+function joinThenSubmit(){
+  var sel=document.getElementById('w-name'), ni=document.getElementById('w-newname');
+  var nn=(ni.value||'').trim().replace(/\s+/g,' ');
+  if(!nn){ toast('대기자에 추가할 이름을 적어주세요'); ni.focus(); return; }
+  var dup=false; (STATE.active||[]).concat(STATE.waiting||[]).forEach(function(x){ if(String(x.name).trim()===nn) dup=true; });
+  if(dup){ toast('이미 명단에 있는 이름이에요 — 위 목록에서 선택해주세요'); return; }
+  var btn=document.getElementById('w-submit'); btn.disabled=true; btn.textContent='대기자 명단에 추가 중…';
+  function fail(msg){ btn.disabled=false; btn.textContent='✅ 인증 완료'; toast(msg); }
+  call('addMember',{pin:'5884', name:nn, status:'waiting'}).then(function(r){
+    if(!r||!r.ok){ fail((r&&r.msg)||'이름 추가 실패 — 다시 시도'); return; }
+    var nid=''; (r.state.waiting||[]).forEach(function(x){ if(String(x.name).trim()===nn) nid=x.id; });
+    if(!nid){ fail('이름 추가 확인 실패 — 새로고침 후 목록에서 선택해주세요'); return; }
+    onState(r.state);
+    sel.value=nid; setMe(nid); ni.value='';
+    var w=document.getElementById('w-newwrap'); if(w) w.style.display='none';
+    btn.disabled=false; btn.textContent='✅ 인증 완료';
+    submit();
+  }).catch(function(){ fail('오류 — 다시 시도'); });
+}
 function submit(){
   var sel=document.getElementById('w-name');var id=sel.value;
   if(!id){toast('이름을 선택해주세요');go('write');return;}
+  if(id===NEWME){ joinThenSubmit(); return; }
   var mark=(document.getElementById('w-mark').value||'').trim()||pickMark||'완';
   var r={mark:mark};
   ITEMS.forEach(function(it,i){var el=document.getElementById('it'+i);r['i'+i]=el?el.value.trim():'';});
