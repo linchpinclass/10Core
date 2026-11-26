@@ -968,6 +968,8 @@ function drawTenkoaCard(name, day, title){
     ctx.textBaseline='alphabetic'; ctx.fillStyle='#ffffff';
     // Day 옆에 그 Day의 날짜(2026.11.25 형식) 표시 — 길면 글자 줄여서 한 줄 유지
     var dateTxt=(STATE&&STATE.dateKey)?String(STATE.dateKey).replace(/-/g,'.'):'';
+    if(dateTxt){ var dp=String(STATE.dateKey).split('-'), dd=new Date(+dp[0],+dp[1]-1,+dp[2]);
+      if(!isNaN(dd.getTime())) dateTxt+='('+'일월화수목금토'.charAt(dd.getDay())+')'; }   // 2026.11.25(수)
     var headTxt='🔥 '+(title||'텐코아')+'  ·  Day '+day+(dateTxt?'  ·  '+dateTxt:'');
     var hfs=33; ctx.font='700 '+hfs+'px '+FS;
     while(hfs>22 && ctx.measureText(headTxt).width>W-pad*2){ hfs--; ctx.font='700 '+hfs+'px '+FS; }
